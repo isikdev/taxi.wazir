@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ru">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Подтверждение кода - Wazir.kg</title>
+        <link rel="stylesheet" href="../assets/scss/main.css">
+    </head>
+    <body>
+        <main>
+            <header>
+                <div class="back">
+                    <div class="container">
+                        <div class="back__content">
+                            <a href="#"><img src="../assets/img/ico/back.svg"
+                                    alt="back"></a>
+                        </div>
+                    </div>
+                </div>
+            </header>
+            <section class="register">
+                <div class="container">
+                    <div class="register__content">
+                        <div class="register__intro">
+                            <h1 class="title-left">Подтвердите код из смс</h1>
+                            <p style="font-size: 14px; font-weight: 500;">Мы
+                                отправили проверочный код на номер +7 999 123 45
+                                67</p>
+                        </div>
+                        <div class="register__form">
+                            <form>
+                                <div class="sms-code-wrapper">
+                                    <input type="text" maxlength="1"
+                                        class="sms-code">
+                                    <input type="text" maxlength="1"
+                                        class="sms-code">
+                                    <input type="text" maxlength="1"
+                                        class="sms-code">
+                                    <input type="text" maxlength="1"
+                                        class="sms-code">
+                                </div>
+                                <p class="timer-sms">Код не пришел</p>
+                                <p class="invalid-text">Неверный код</p>
+                                <a class="resend-sms" href="#">Отправить код
+                                    повторно</a>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <script src="../assets/js/auth.js"></script>
+    </body>
+</html>

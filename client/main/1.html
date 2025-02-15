@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="ru">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Регистрация пользователь Wazir.kg</title>
+        <link rel="stylesheet" href="../assets/scss/main.css">
+        <link rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/css/intlTelInput.css">
+        <style>
+        body {
+            margin: 0;
+            padding: 0;
+            position: relative;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .background-map {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1; 
+        }
+        .background-map iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        .side-menu {
+            padding: 50px 20px;
+            position: fixed;
+            top: 0;
+            left: -250px; 
+            width: 250px;
+            height: 100%;
+            background-color: #fff;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.3);
+            transition: left 0.3s ease;
+            z-index: 2;
+        }
+        .side-menu.open {
+            left: 0; 
+        }
+        .side-menu__item {
+            display: block;
+            padding: 10px 0;
+            text-decoration: none;
+            color: #333;
+            border-bottom: 1px solid #eee;
+        }
+        .side-menu__item--logout {
+            margin-top: 30%;
+        }
+        .side-menu-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            z-index: 1; 
+        }
+        .side-menu-overlay.active {
+            display: block;
+        }
+        header, main {
+            position: relative;
+            z-index: 1;
+        }
+        .menu {
+            background: none;
+            border: none;
+            cursor: pointer;
+            z-index: 3;
+            position: relative;
+        }
+        .main__map {
+            position: relative;
+            z-index: 1; 
+        }
+        .side-menu__item {
+            border: 0px none;
+            padding: 12px 0;
+        }
+    </style>
+    </head>
+    <body>
+        <div class="background-map">
+            <iframe
+                src="https://yandex.uz/map-widget/v1/?ll=74.634142%2C42.845381&mode=poi&poi%5Bpoint%5D=74.603691%2C42.875968&poi%5Buri%5D=ymapsbm1%3A%2F%2Fgeo%3Fdata%3DCgk3NzEyOTAxMjUSItCa0YvRgNCz0YvQt9GB0YLQsNC9LCDQkdC40YjQutC10LoiCg0YNZVCFf6AK0I%2C&z=12.4"
+                allowfullscreen="true"></iframe>
+        </div>
+
+        <div class="side-menu" id="sideMenu">
+            <div class="side-menu__header">
+                <a href="../profile/1.html">
+                    <div class="side-menu__profile">
+                        <img src="../assets/img/ico/avatar.svg" alt="avatar"
+                            class="side-menu__avatar">
+                        <span class="side-menu__name">Виктория</span>
+                    </div>
+                </a>
+            </div>
+            <nav class="side-menu__nav">
+                <a href="../payment/1.html" class="side-menu__item">Способ
+                    оплаты</a>
+                <a href="#" class="side-menu__item">Стать водителем</a>
+                <a href="#" class="side-menu__item">Бизнес-аккаунт</a>
+                <a href="../security/1.html"
+                    class="side-menu__item">Безопасность</a>
+                <a href="../order/1.html" class="side-menu__item">История
+                    заказов</a>
+                <a href="../promocode/1.html"
+                    class="side-menu__item">Промокоды</a>
+                <a href="../settings/1.html"
+                    class="side-menu__item">Настройки</a>
+                <a href="../support/1.html" class="side-menu__item">Служба
+                    поддержки</a>
+                <a href="../board/1.html" class="side-menu__item">Информация</a>
+                <a href="#"
+                    class="side-menu__item side-menu__item--logout">Выйти</a>
+            </nav>
+        </div>
+
+        <!-- Оверлей для меню -->
+        <div class="side-menu-overlay" id="menuOverlay"></div>
+
+        <header>
+            <div class="header__main-wrapper" style="padding: 30px 0;">
+                <div class="container">
+                    <div class="header__main">
+                        <div class="header__main-menu">
+                            <button class="menu" id="menuBtn">
+                                <img src="../assets/img/ico/menu.svg"
+                                    alt="menu">
+                            </button>
+                        </div>
+                        <div class="header__main-geo">
+                            <div class="header__main-geo-intro">
+                                <p>Ваш адрес</p>
+                                <h5>4-й мкр-н 20</h5>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+        <main>
+            <div class="main__map">
+                <div class="container">
+                    <div class="main__map-content">
+                        <div class="main__map-intro">
+                            <form>
+                                <div class="main__map-search">
+                                    <img src="../assets/img/ico/search.svg"
+                                        alt="search">
+                                    <input type="search"
+                                        placeholder="Куда едем?">
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+        <script src="../assets/js/menu.js"></script>
+        <script>
+        const menuBtn = document.getElementById('menuBtn');
+        const sideMenu = document.getElementById('sideMenu');
+        const menuOverlay = document.getElementById('menuOverlay');
+
+        menuBtn.addEventListener('click', () => {
+            sideMenu.classList.toggle('open');
+            menuOverlay.classList.toggle('active');
+        });
+
+        menuOverlay.addEventListener('click', () => {
+            sideMenu.classList.remove('open');
+            menuOverlay.classList.remove('active');
+        });
+    </script>
+    </body>
+</html>

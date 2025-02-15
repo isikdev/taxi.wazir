@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ru">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Способ оплаты</title>
+        <link rel="stylesheet" href="../assets/scss/main.css">
+        <style>
+            .settings-item__left {
+                padding: 12px 0;
+            }
+        </style>
+    </head>
+    <body>
+        <main>
+            <div class="settings">
+                <div class="settings__header">
+                    <a href="../main/1.html">
+                        <div class="profile__back">
+                            <img src="../assets/img/ico/prev_profile.svg"
+                                alt="back">
+                        </div>
+                    </a>
+                </div>
+
+                <h1 class="title-left">Способ оплаты</h1>
+
+                <div class="settings-section">
+                    <div class="settings-items-wrapper">
+                        <div class="settings-item promocode-item"
+                            onclick="selectPromocode(this)">
+                            <div class="settings-item__left">
+                                <span>Наличными</span>
+                            </div>
+                            <div class="settings-item__right">
+                                <img src="../assets/img/ico/check.svg"
+                                    alt="check" style="display: none;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <script>
+            let selectedPromocode = null;
+            
+            function selectPromocode(element) {
+                if (selectedPromocode) {
+                    selectedPromocode.querySelector('img').style.display = 'none';
+                }
+                
+                if (selectedPromocode === element) {
+                    selectedPromocode = null;
+                    return;
+                }
+                
+                selectedPromocode = element;
+                element.querySelector('img').style.display = 'block';
+            }
+        </script>
+    </body>
+</html>

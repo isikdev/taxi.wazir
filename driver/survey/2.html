@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ru">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Заполнение анкеты Wazir.kg</title>
+        <link rel="stylesheet" href="../assets/scss/main.css">
+    </head>
+    <body>
+        <main>
+            <header>
+                <div class="back">
+                    <div class="container">
+                        <div class="back__content">
+                            <a href="./1.html"><img
+                                    src="../assets/img/ico/back.svg"
+                                    alt="back"></a>
+                        </div>
+                    </div>
+                </div>
+            </header>
+            <section class="survey">
+                <div class="container">
+                    <div class="survey__content">
+                        <h1 class="title-left">
+                            Заполните анкету
+                        </h1>
+                        <div class="survey__profile-wrapper">
+                            <div class="survey__profile">
+                                <div class="survey__profile-item-active">
+                                    1
+                                </div>
+                                <p>Про вас</p>
+                            </div>
+                            <div class="survey__profile">
+                                <div class="survey__profile-item">
+                                    2
+                                </div>
+                                <p>Про авто</p>
+                            </div>
+                            <div class="survey__profile">
+                                <div class="survey__profile-item">
+                                    3
+                                </div>
+                                <p>Условия</p>
+                            </div>
+                        </div>
+
+                        <div class="survey__city-input">
+                            <label>Укажите город</label>
+                            <div class="survey__input-wrapper">
+                                <input type="text" readonly
+                                    placeholder="В каком городе вы хотите работать">
+                                <span class="arrow-icon">></span>
+                            </div>
+                        </div>
+
+                        <div class="survey__cities-list">
+                            <div class="survey__search">
+                                <input type="text" placeholder="Поиск">
+                            </div>
+                            <div class="survey__cities">
+                                <div class="city-item">Москва</div>
+                                <div class="city-item">Санкт-Петербург</div>
+                                <div class="city-item">Омск</div>
+                                <div class="city-item">Ростов-на-Дону</div>
+                                <div class="city-item">Уфа</div>
+                                <div class="city-item">Ош</div>
+                                <div class="city-item">Пермь</div>
+                                <div class="city-item">Воронеж</div>
+                            </div>
+                            <button class="main__btn"
+                                style="margin: 30px auto;">Подтвердить</button>
+                        </div>
+
+                        <div class="city-info" style="display: none;">
+                            <p class="available-options"></p>
+                            <div class="driver-info">
+                                <h3>Водитель</h3>
+                                <p>На своем или арендованном автомобиле сможете
+                                    помогать пассажирам добираться из одной
+                                    точки в другую. А еще доставлять посылки и
+                                    грузы до 20 килограмм, если в вашем городе
+                                    доступен соответствующи тариф.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <script>
+            $(document).ready(function() {
+                function bindCityEvents() {
+                    $('.city-item').on('click', function() {
+                        $('.city-item').removeClass('selected');
+                        $(this).addClass('selected');
+                        $('.main__btn').addClass('main__btn-active');
+                    });
+
+                    $('.main__btn').on('click', function() {
+                        if ($('.city-item.selected').length) {
+                            const cityName = $('.city-item.selected').text();
+                            $('.survey__input-wrapper').html(`
+                                <div class="survey__selected-city">
+                                    <span>${cityName}</span>
+                                    <img src="../assets/img/ico/cancel.svg" alt="cancel" class="cancel-icon">
+                                </div>
+                            `);
+                            $('.survey__cities-list').removeClass('active').fadeOut(300);
+                            
+                            $('.city-info').show();
+                            $('.available-options').text(`В городе ${cityName} доступны следующие варианты:`);
+                            
+                            $('.survey__content .main__btn-active').remove();
+                            $('.survey__content').append('<a href="./3.html" class="main__btn main__btn-active" style="margin: 50px auto;">Продолжить</a>');
+                        }
+                    });
+
+                    $('.survey__search input').on('input', function() {
+                        const searchText = $(this).val().toLowerCase();
+                        $('.city-item').each(function() {
+                            const cityText = $(this).text().toLowerCase();
+                            $(this).toggle(cityText.includes(searchText));
+                        });
+                    });
+                }
+
+                $('.survey__input-wrapper').on('click', function() {
+                    $('.survey__cities-list').show().addClass('active');
+                });
+
+                bindCityEvents();
+
+                $(document).on('click', '.cancel-icon', function(e) {
+                    e.stopPropagation();
+                    $('.survey__input-wrapper').html(`
+                        <input type="text" readonly placeholder="В каком городе вы хотите работать">
+                        <span class="arrow-icon">></span>
+                    `);
+                    $('.survey__cities-list').html(`
+                        <div class="survey__search">
+                            <input type="text" placeholder="Поиск">
+                        </div>
+                        <div class="survey__cities">
+                            <div class="city-item">Москва</div>
+                            <div class="city-item">Санкт-Петербург</div>
+                            <div class="city-item">Омск</div>
+                            <div class="city-item">Ростов-на-Дону</div>
+                            <div class="city-item">Уфа</div>
+                            <div class="city-item">Ош</div>
+                            <div class="city-item">Пермь</div>
+                            <div class="city-item">Воронеж</div>
+                        </div>
+                        <button class="main__btn" style="margin: 30px auto;">Подтвердить</button>
+                    `).show().addClass('active');
+                    bindCityEvents();
+                    $('.survey__content .main__btn-active').remove();
+                    $('.city-info').hide();
+                });
+
+                $(document).on('click', function(e) {
+                    if (!$(e.target).closest('.survey__cities-list').length && 
+                        !$(e.target).closest('.survey__input-wrapper').length) {
+                        $('.survey__cities-list').removeClass('active').fadeOut(300);
+                    }
+                });
+            });
+        </script>
+    </body>
+</html>

@@ -1,0 +1,112 @@
+.top-bar {
+    margin: 50px 0;
+    width: 100%;
+}
+
+.top-bar__item {
+    color: #ccc;
+    font-size: 16px;
+    cursor: pointer;
+    padding-bottom: 5px;
+    border-bottom: 2px solid transparent;
+}
+
+.top-bar__item.selected {
+    color: #fff;
+    border-color: #fff;
+}
+
+.charts-container {
+    display: flex;
+    justify-content: space-between;
+}
+
+.chart-title {
+    font-size: 18px;
+    margin-bottom: 20px;
+    color: #fff;
+}
+
+.donut-container {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.donut-chart {
+    position: relative;
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    background: #333;
+}
+
+.donut-center-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.donut-1 {
+    background: conic-gradient(#2e5375 0% 55%, #7f2f2f 55% 100%);
+}
+
+.donut-2 {
+    background: conic-gradient(#2e7f2f 0% 70%, #2e5375 70% 98%, #c2c24b 98% 100%);
+}
+
+.donut-3 {
+    background: conic-gradient(#f7981c 0% 95%, #5fcbd8 95% 100%);
+}
+
+.chart-legend {
+    font-size: 16px;
+    line-height: 1.4;
+}
+
+.chart-legend__total {
+    margin-bottom: 10px;
+}
+
+.chart-legend__item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.chart-legend__item span {
+    margin-right: 10px;
+}
+
+.legend-color {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+}
+
+.legend-color--blue {
+    background: #2e5375;
+}
+.legend-color--red {
+    background: #7f2f2f;
+}
+.legend-color--green {
+    background: #2e7f2f;
+}
+.legend-color--blue-dark {
+    background: #2e5375;
+}
+.legend-color--green-light {
+    background: #4b7f2e;
+}
+.legend-color--brown {
+    background: #7f5d2f;
+}
+.legend-color--teal {
+    background: #2f7f7f;
+}

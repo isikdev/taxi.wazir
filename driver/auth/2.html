@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ru">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Регистрация водитель Wazir.kg</title>
+        <link rel="stylesheet" href="../assets/scss/main.css">
+        <link rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/css/intlTelInput.css">
+    </head>
+    <body>
+        <header>
+            <div class="brand">
+                <div class="container">
+                    <div class="brand__content">
+                        <div class="logo">
+                            <a href="./1.html"><img src="../assets/img/logo.png"
+                                    alt="logo"></a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+        <main>
+            <section class="register">
+                <div class="container">
+                    <div class="register__content">
+                        <div class="register__intro">
+                            <h1 class="title">
+                                Введите код из смс. Мы отправили его на номер
+                                <span class="active-phone-number"></span>
+                            </h1>
+                        </div>
+                        <div class="register__form">
+                            <form>
+                                <div class="sms-code-wrapper">
+                                    <input type="text" maxlength="1"
+                                        class="sms-code">
+                                    <input type="text" maxlength="1"
+                                        class="sms-code">
+                                    <input type="text" maxlength="1"
+                                        class="sms-code">
+                                    <input type="text" maxlength="1"
+                                        class="sms-code">
+                                </div>
+                                <p class="timer-sms">Код не пришел</p>
+                                <p class="invalid-text">Неверный код</p>
+                                <a class="resend-sms" href="#">Отправить код
+                                    повторно</a>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <script src="../assets/js/auth.js"></script>
+    </body>
+</html>

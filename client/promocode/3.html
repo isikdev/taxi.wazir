@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ru">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Купить промокод</title>
+        <link rel="stylesheet" href="../assets/scss/main.css">
+        <style>
+            .settings-item__left {
+                padding: 12px 0;
+            }
+        </style>
+    </head>
+    <body>
+        <main>
+            <div class="settings">
+                <div class="settings__header">
+                    <a href="./1.html">
+                        <div class="profile__back">
+                            <img src="../assets/img/ico/prev_profile.svg"
+                                alt="back">
+                        </div>
+                    </a>
+                </div>
+
+                <h1 class="title-left">Купить промокод</h1>
+
+                <div class="settings-section">
+                    <div class="settings-items-wrapper">
+                        <div class="settings-item promocode-item"
+                            onclick="selectPromocode(this)">
+                            <div class="settings-item__left">
+                                <span>Промокод на все тарифы</span>
+                            </div>
+                            <div class="settings-item__right">
+                                <img src="../assets/img/ico/check.svg"
+                                    alt="check" style="display: none;">
+                            </div>
+                        </div>
+
+                        <div class="settings-item promocode-item"
+                            onclick="selectPromocode(this)">
+                            <div class="settings-item__left">
+                                <span>Промокод на все тарифы</span>
+                            </div>
+                            <div class="settings-item__right">
+                                <img src="../assets/img/ico/check.svg"
+                                    alt="check" style="display: none;">
+                            </div>
+                        </div>
+
+                        <div class="settings-item promocode-item"
+                            onclick="selectPromocode(this)">
+                            <div class="settings-item__left">
+                                <span>Промокод на все тарифы</span>
+                            </div>
+                            <div class="settings-item__right">
+                                <img src="../assets/img/ico/check.svg"
+                                    alt="check" style="display: none;">
+                            </div>
+                        </div>
+                    </div>
+
+                    <a href="./1.html" class="main__btn-active"
+                        style="width: 100%; margin-top: 40px; background-color: #666666; border: none; color: white; padding: 15px; border-radius: 8px; text-decoration: none; display: block; text-align: center;">
+                        Купить
+                    </a>
+                </div>
+            </div>
+        </main>
+
+        <script>
+            let selectedPromocode = null;
+            
+            function selectPromocode(element) {
+                // Убираем галочку у предыдущего выбранного элемента
+                if (selectedPromocode) {
+                    selectedPromocode.querySelector('img').style.display = 'none';
+                }
+                
+                // Если нажали на тот же элемент - снимаем выделение
+                if (selectedPromocode === element) {
+                    selectedPromocode = null;
+                    return;
+                }
+                
+                // Показываем галочку у нового выбранного элемента
+                selectedPromocode = element;
+                element.querySelector('img').style.display = 'block';
+            }
+        </script>
+    </body>
+</html>

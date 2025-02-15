@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ru">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Заполнение анкеты Wazir.kg</title>
+        <link rel="stylesheet" href="../assets/scss/main.css">
+    </head>
+    <body>
+        <div class="survey-3">
+            <div class="container">
+
+                <div class="back-button">←</div>
+
+                <h3 class="title-left">Заполните данные ВУ</h3>
+                <form>
+                    <div class="form-group">
+                        <label class="form-label">Введите страну</label>
+                        <div class="form-input-with-arrow" id="countrySelector">
+                            <input type="text" value="Выберите страну" readonly>
+                            <span class="arrow">›</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Введите Ф.И.О.</label>
+                        <div class="form-input-with-arrow">
+                            <input type="text" placeholder="Ф.И.О.">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Введите номер в/у</label>
+                        <div class="form-input-with-arrow">
+                            <span class="prefix">в/у</span>
+                            <input type="text" placeholder="00000000"
+                                maxlength="8">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Введите дату выдачи
+                            в/у</label>
+                        <input type="text" class="form-input date-mask"
+                            placeholder="дд.мм.гггг">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Введите срок действия в/у
+                            (если
+                            есть)</label>
+                        <input type="text" class="form-input date-mask"
+                            placeholder="дд.мм.гггг">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Введите код приглашения (если
+                            есть)</label>
+                        <input type="text" class="form-input"
+                            placeholder="0000000000" maxlength="10">
+                    </div>
+
+                    <button type="submit"
+                        class="main__btn"
+                        style="margin: 20px 0 30px 0;">Подтвердить</button>
+                </form>
+            </div>
+        </div>
+
+        <script src="https://unpkg.com/imask"></script>
+        <script>
+            document.querySelectorAll('.date-mask').forEach(element => {
+                IMask(element, {
+                    mask: 'dd.mm.yyyy',
+                    blocks: {
+                        dd: {
+                            mask: IMask.MaskedRange,
+                            from: 1,
+                            to: 31
+                        },
+                        mm: {
+                            mask: IMask.MaskedRange,
+                            from: 1,
+                            to: 12
+                        },
+                        yyyy: {
+                            mask: IMask.MaskedRange,
+                            from: 1900,
+                            to: 2099
+                        }
+                    }
+                });
+            });
+
+            function checkFormCompletion() {
+                const country = document.querySelector('#countrySelector input').value;
+                const name = document.querySelector('input[placeholder="Ф.И.О."]').value;
+                const licenseNumber = document.querySelector('input[placeholder="00000000"]').value;
+                const issueDate = document.querySelector('.date-mask[placeholder="дд.мм.гггг"]').value;
+                const expiryDate = document.querySelectorAll('.date-mask')[1].value;
+                const submitButton = document.querySelector('.main__btn');
+
+                if (
+                    country !== 'Выберите страну' && 
+                    name.trim() !== '' && 
+                    licenseNumber.trim() !== '' && 
+                    issueDate.length === 10
+                ) {
+                    submitButton.classList.add('main__btn-active');
+                } else {
+                    submitButton.classList.remove('main__btn-active');
+                }
+            }
+
+            document.querySelectorAll('input').forEach(input => {
+                input.addEventListener('input', checkFormCompletion);
+            });
+
+            const countrySelector = document.getElementById('countrySelector');
+            countrySelector.addEventListener('click', function() {
+                const input = this.querySelector('input');
+                input.value = 'Киргизия';
+                checkFormCompletion();
+            });
+
+            document.querySelector('form').addEventListener('submit', function(e) {
+                e.preventDefault(); 
+                
+                const country = document.querySelector('#countrySelector input').value;
+                const name = document.querySelector('input[placeholder="Ф.И.О."]').value;
+                const licenseNumber = document.querySelector('input[placeholder="00000000"]').value;
+                const issueDate = document.querySelector('.date-mask[placeholder="дд.мм.гггг"]').value;
+                
+                if (
+                    country !== 'Выберите страну' && 
+                    name.trim() !== '' && 
+                    licenseNumber.trim() !== '' && 
+                    issueDate.length === 10
+                ) {
+                    window.location.href = '4.html';
+                }
+            });
+        </script>
+    </body>
+</html>

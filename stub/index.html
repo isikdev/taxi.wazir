@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Сайт находится в разработке!</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link rel="apple-touch-icon" sizes="180x180"
+            href="./favicon/apple-touch-icon.png">
+        <link rel="icon" type="image/png" sizes="32x32"
+            href="./favicon/favicon-32x32.png">
+        <link rel="icon" type="image/png" sizes="16x16"
+            href="./favicon/favicon-16x16.png">
+        <link rel="manifest" href="./favicon/site.webmanifest">
+        <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap');
+        
+        @keyframes gradientShift {
+            0% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        body, html {
+            font-family: "Montserrat", sans-serif;
+            margin: 0;
+            padding: 0;
+            height: 100%;
+        }
+
+        body {
+            background: linear-gradient(-45deg, #3F0866, #6D0F91, #C621E3, #8923E0);
+            background-size: 400% 400%;
+            animation: gradientShift 10s ease infinite;
+        }
+
+        .fade-in {
+            animation: fadeIn 2s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            0% {
+                opacity: 0;
+            }
+            100% {
+                opacity: 1;
+            }
+        }
+
+        .logo {
+            max-width: 100px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: center;
+        }
+    </style>
+    </head>
+
+    <body class="flex items-center justify-center text-white">
+        <div class="fade-in text-center space-y-8 px-4">
+            <img class="logo"
+                src="https://isikdev.github.io/wazir.kg/disp/assets/img/logo/logo_small.png"
+                alt="logo">
+            <div class="text-5xl font-extrabold text-purple-200">
+                <span class="text-purple-500">Скоро</span> здесь будет что-то
+                мощное! 🚀
+            </div>
+
+            <p class="text-gray-300 text-lg py-4">
+                Мы работаем над созданием невероятного WEB приложения.<br>
+                Сайт находится в разработке, скоро он будет доступен!<br>
+                <b>Не пропустите!</b>
+            </p>
+
+            <a href="https://wazir.kg/"
+                class="text-white-400">https://wazir.kg/</a>
+
+            <footer class="text-gray-500 text-sm my-5">
+                © 2024 WAZIR.KG Все права защищены.
+            </footer>
+        </div>
+    </body>
+
+</html>

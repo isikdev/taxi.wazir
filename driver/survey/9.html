@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ru">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Заполнение анкеты Wazir.kg</title>
+        <link rel="stylesheet" href="../assets/scss/main.css">
+    </head>
+    <body>
+        <main>
+            <header>
+                <div class="back">
+                    <div class="container">
+                        <div class="back__content">
+                            <a href="./8.html"><img
+                                    src="../assets/img/ico/back.svg"
+                                    alt="back"></a>
+                        </div>
+                    </div>
+                </div>
+            </header>
+            <section class="survey-3">
+                <div class="container">
+                    <div class="survey__content">
+                        <h1 class="title-left">
+                            Подтверждение данных
+                        </h1>
+
+                        <!-- Блок с чекбоксами -->
+                        <div class="survey__profile-wrapper">
+                            <div class="survey__profile">
+                                <div class="survey__profile-item-active">
+                                    <img src="../assets/img/ico/check.svg"
+                                        alt="check">
+                                </div>
+                                <p>Про вас</p>
+                            </div>
+                            <div class="survey__profile">
+                                <div class="survey__profile-item-active">
+                                    <img src="../assets/img/ico/check.svg"
+                                        alt="check">
+                                </div>
+                                <p>Про авто</p>
+                            </div>
+                            <div class="survey__profile">
+                                <div class="survey__profile-item-active">
+                                    <img src="../assets/img/ico/check.svg"
+                                        alt="check">
+                                </div>
+                                <p>Условия</p>
+                            </div>
+                        </div>
+
+                        <p class="survey__verification-text">Давайте сверимся.
+                            Если все в порядке, нажмите Все верно.</p>
+
+                        <div class="survey__personal-info">
+                            <h2>Про авто</h2>
+
+                            <div class="info-item">
+                                <span class="info-label">Марка</span>
+                                <div class="info-value">
+                                    <span>Honda</span>
+                                    <img src="../assets/img/ico/next.svg"
+                                        alt="next">
+                                </div>
+                            </div>
+
+                            <div class="info-item">
+                                <span class="info-label">Модель</span>
+                                <div class="info-value">
+                                    <span>Fit</span>
+                                    <img src="../assets/img/ico/next.svg"
+                                        alt="next">
+                                </div>
+                            </div>
+
+                            <div class="info-item">
+                                <span class="info-label">Цвет</span>
+                                <div class="info-value">
+                                    <span>Белый</span>
+                                    <img src="../assets/img/ico/next.svg"
+                                        alt="next">
+                                </div>
+                            </div>
+
+                            <div class="info-item">
+                                <span class="info-label">Год</span>
+                                <div class="info-value">
+                                    <span>2013</span>
+                                    <img src="../assets/img/ico/next.svg"
+                                        alt="next">
+                                </div>
+                            </div>
+
+                            <div class="info-item">
+                                <span class="info-label">ГРЗ</span>
+                                <div class="info-value">
+                                    <span>B0729AA</span>
+                                    <img src="../assets/img/ico/next.svg"
+                                        alt="next">
+                                </div>
+                            </div>
+                        </div>
+
+                        <button class="main__btn-active">
+                            <a href="./10.html">Все верно</a>
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <script>
+            $(document).ready(function() {
+                // Открытие списка городов
+                $('.city-select').on('click', function() {
+                    $('.survey__cities-list').show().addClass('active');
+                });
+
+                // Поиск по городам
+                $('.survey__search input').on('input', function() {
+                    const searchText = $(this).val().toLowerCase();
+                    $('.city-item').each(function() {
+                        const cityText = $(this).text().toLowerCase();
+                        $(this).toggle(cityText.includes(searchText));
+                    });
+                });
+
+                // Выбор города
+                $('.city-item').on('click', function() {
+                    $('.city-item').removeClass('selected');
+                    $(this).addClass('selected');
+                });
+
+                // Подтверждение выбора
+                $('.survey__cities-list .main__btn-active').on('click', function() {
+                    const selectedCity = $('.city-item.selected').text();
+                    $('.city-select .info-value span').text(selectedCity);
+                    $('.survey__cities-list').removeClass('active').hide();
+                });
+
+                // Закрытие списка при клике вне его
+                $(document).on('click', function(e) {
+                    if (!$(e.target).closest('.survey__cities-list').length && 
+                        !$(e.target).closest('.city-select').length) {
+                        $('.survey__cities-list').removeClass('active').hide();
+                    }
+                });
+            });
+        </script>
+    </body>
+</html>

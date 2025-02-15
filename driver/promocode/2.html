@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ru">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Добавление промокода</title>
+        <link rel="stylesheet" href="../assets/scss/main.css">
+    </head>
+    <body>
+        <main>
+            <div class="settings">
+                <div class="settings__header">
+                    <a href="./1.html">
+                        <div class="profile__back">
+                            <img src="../assets/img/ico/prev_profile.svg"
+                                alt="back">
+                        </div>
+                    </a>
+                </div>
+
+                <h1 class="title-left">Добавление промокода</h1>
+
+                <div class="settings-section">
+                    <div class="register__form">
+                        <input type="text"
+                            placeholder="Ваш промокод"
+                            class="form-input"
+                            style="border: none; border-bottom: 1px solid #E0E0E0; border-radius: 0;">
+
+                        <a href="./1.html" class="main__btn-active"
+                            style="width: 100%; margin-top: 40px; background-color: #666666; border: none; color: white; padding: 15px; border-radius: 8px; text-decoration: none; display: block; text-align: center;">
+                            Активировать
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <script>
+            // Скрипт для изменения стиля ссылки при вводе текста
+            const input = document.querySelector('input');
+            const button = document.querySelector('.main__btn-active');
+            
+            input.addEventListener('input', function() {
+                if (this.value.length > 0) {
+                    button.style.backgroundColor = '#404040';
+                } else {
+                    button.style.backgroundColor = '#666666';
+                }
+            });
+        </script>
+    </body>
+</html>
