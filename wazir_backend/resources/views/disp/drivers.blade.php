@@ -22,8 +22,20 @@
     width: unset;
     gap: 20px;
 }
+
+/* Пример для стилей статусов */
+.status-free {
+    color: green;
+    font-weight: bold;
+}
+
+.status-busy {
+    color: red;
+    font-weight: bold;
+}
 </style>
 @endpush
+
 @section('content')
 <div class="main__subheader-drivers">
     <div class="main__subheader-add">
@@ -115,10 +127,9 @@
             </div>
         </div>
     </div>
-
-</div>
 </div>
 @endsection
+
 @push('scripts')
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="{{ asset('assets/js/script.js') }}"></script>
@@ -130,24 +141,42 @@ function updateDrivers() {
         success: function(data) {
             let tbody = $('#drivers-table-body');
             tbody.empty();
+
             data.forEach(function(driver) {
-                let rawPhone = driver.phone.replace(/\D/g, '');
-                let formattedPhone = driver.phone;
+                // Форматируем телефон
+                let rawPhone = (driver.phone || '').replace(/\D/g, '');
+                let formattedPhone = driver.phone || '';
                 if (rawPhone.length === 9) {
-                    formattedPhone = '+996 ' + rawPhone.substr(0, 3) + ' ' + rawPhone.substr(3, 2) +
-                        '-' + rawPhone.substr(5, 2) + '-' + rawPhone.substr(7, 2);
+                    formattedPhone = '+996 ' + rawPhone.substr(0, 3) + ' ' +
+                        rawPhone.substr(3, 2) + '-' +
+                        rawPhone.substr(5, 2) + '-' +
+                        rawPhone.substr(7, 2);
                 }
-                let row = `<tr>
-                    <td>Новый пользователь</td>
-                    <td><span class="status-busy">Не подтвержден</span></td>
-                    <td>${driver.id}</td>
-                    <td>${driver.full_name}</td>
-                    <td>+996 ${formattedPhone}</td>
-                    <td>Основной</td>
-                    <td>0</td>
-                    <td>0</td>
-                    <td>Не указано</td>
-                </tr>`;
+
+                // Статус
+                let statusHtml = driver.is_confirmed ?
+                    '<span class="status-free">Подтвержден</span>' :
+                    '<span class="status-busy">Не подтвержден</span>';
+
+                // Водительское удостоверение (номер)
+                let licenseHtml = driver.license_number ?
+                    driver.license_number :
+                    'Не указано';
+
+                // Формируем строку таблицы
+                let row = `
+                    <tr>
+                        <td>Новый пользователь</td>
+                        <td>${statusHtml}</td>
+                        <td>${driver.id}</td>
+                        <td>${driver.full_name ?? ''}</td>
+                        <td>${formattedPhone}</td>
+                        <td>Основной</td>
+                        <td>0</td>
+                        <td>0</td>
+                        <td>${licenseHtml}</td>
+                    </tr>
+                `;
                 tbody.append(row);
             });
         },
@@ -156,6 +185,14 @@ function updateDrivers() {
         }
     });
 }
-setInterval(updateDrivers, 10000);
+
+$(document).ready(function() {
+    // Вызываем один раз при загрузке
+    updateDrivers();
+
+    // Если нужно автообновление каждые 10 секунд, раскомментируйте:
+    // setInterval(updateDrivers, 10000);
+});
 </script>
+
 @endpush

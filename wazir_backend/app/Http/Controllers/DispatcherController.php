@@ -17,18 +17,14 @@ class DispatcherController extends Controller
         $free   = Driver::where('status', 'free')->count();
         $busy   = Driver::where('status', 'busy')->count();
         $drivers = Driver::paginate(50);
-        return view('disp.drivers', compact('totalDrivers', 'online', 'free', 'busy', 'drivers'));
+        return view('disp.index', compact('totalDrivers', 'online', 'free', 'busy', 'drivers'));
     }
 
     public function list()
     {
-        $drivers = Cache::remember('drivers_list_all', now()->addMinutes(5), function () {
-            return Driver::all();
-        });
-    
+        $drivers = Driver::all();
         return response()->json($drivers);
-    }
-    
+    }    
 
     public function chat()
     {

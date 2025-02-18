@@ -3,21 +3,18 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DriverAuthController;
 use App\Http\Controllers\DispatcherController;
+use App\Http\Controllers\DriverCreationController;
 
 Route::get('/', function () {
     return view('welcome');
 });
 
 Route::prefix('client')->group(function () {
-    Route::get('/', function () {
-        return view('client.index');
-    });
+    Route::get('/', [DispatcherController::class, 'index'])->name('dispatcher.index');
 });
 
 Route::prefix('disp')->group(function () {
-    Route::get('/', function () {
-        return view('disp.index');
-    });
+    Route::get('/', [DispatcherController::class, 'index'])->name('dispatcher.index');
     Route::get('/drivers', [DispatcherController::class, 'index'])->name('dispatcher.drivers');
     Route::get('/drivers/list', [DispatcherController::class, 'list'])->name('dispatcher.drivers.list');
 });
@@ -40,25 +37,31 @@ Route::group(['prefix' => 'backend'], function() {
         Route::get('/', [DispatcherController::class, 'index'])->name('dispatcher.backend.index');
         Route::get('/drivers', [DispatcherController::class, 'index'])->name('dispatcher.backend.drivers');
         Route::get('/drivers/list', [DispatcherController::class, 'list'])->name('dispatcher.backend.drivers.list');
-        Route::get('/analytics', function() {
-            return view('disp.analytics');
-        })->name('dispatcher.backend.analytics');
+
         Route::get('/analytics', [DispatcherController::class, 'analytics'])->name('dispatcher.backend.analytics');
+        
         Route::get('/get_balance', function() {
             return view('disp.get_balance');
         })->name('dispatcher.backend.get_balance');
         Route::get('/new_order', function() {
             return view('disp.new_order');
         })->name('dispatcher.backend.new_order');
-        Route::get('/drivers_control_edit', function() {
-            return view('disp.drivers_control_edit');
-        })->name('dispatcher.backend.drivers_control_edit');
-        Route::get('/drivers_num_edit', function() {
-            return view('disp.drivers_num_edit');
-        })->name('dispatcher.backend.drivers_num_edit');
-        Route::get('/drivers_car_edit', function() {
-            return view('disp.drivers_car_edit');
-        })->name('dispatcher.backend.drivers_car_edit');
+
+        Route::get('/drivers_control_edit', [\App\Http\Controllers\DriverCreationController::class, 'showStep1'])
+            ->name('dispatcher.backend.drivers_control_edit');
+        Route::post('/drivers_control_edit', [\App\Http\Controllers\DriverCreationController::class, 'processStep1'])
+            ->name('dispatcher.backend.process_drivers_control_edit');
+
+        Route::get('/drivers_num_edit/{driver}', [\App\Http\Controllers\DriverCreationController::class, 'showStep2'])
+            ->name('dispatcher.backend.drivers_num_edit');
+        Route::post('/drivers_num_edit/{driver}', [\App\Http\Controllers\DriverCreationController::class, 'processStep2'])
+            ->name('dispatcher.backend.process_drivers_num_edit');
+
+        Route::get('/drivers_car_edit/{driver}', [DriverCreationController::class, 'showStep3'])
+            ->name('dispatcher.backend.drivers_car_edit');
+        Route::post('/drivers_car_edit/{driver}', [DriverCreationController::class, 'processStep3'])
+            ->name('dispatcher.backend.process_drivers_car_edit');
+
         Route::get('/drivers_control', function() {
             return view('disp.drivers_control');
         })->name('dispatcher.backend.drivers_control');
@@ -66,4 +69,8 @@ Route::group(['prefix' => 'backend'], function() {
         Route::get('/chat', [DispatcherController::class, 'chat'])->name('dispatcher.backend.chat');
         Route::get('/pay_balance', [DispatcherController::class, 'pay_balance'])->name('dispatcher.backend.pay_balance');
     });
+});
+
+Route::get('/test-db', function() {
+    dd(\App\Models\Driver::all());
 });

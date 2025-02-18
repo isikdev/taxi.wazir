@@ -912,6 +912,7 @@ html {
 .main__table tr,
 .main__table td {
   border-right: 1px solid #444;
+  border-bottom: 1px solid #444;
 }
 .main__table thead {
   background-color: #47484c;
@@ -994,6 +995,7 @@ html {
   border-radius: 5px;
 }
 .main__table-driver button {
+  margin: 20px 0;
   padding: 12px;
   background: #47484c;
   color: #fff;
