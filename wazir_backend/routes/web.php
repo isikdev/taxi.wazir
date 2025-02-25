@@ -10,7 +10,7 @@ Route::get('/', function () {
 });
 
 Route::prefix('client')->group(function () {
-    Route::get('/', [DispatcherController::class, 'index'])->name('dispatcher.index');
+    Route::get('/', [DispatcherController::class, 'index'])->name('client.dispatcher.index');
 });
 
 Route::prefix('disp')->group(function () {
