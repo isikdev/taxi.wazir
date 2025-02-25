@@ -69,35 +69,21 @@
 </div>
 <div class="main__drivers-table">
     <div class="main__table main__paybalance-table">
-        <table>
+        <table class="main__table">
             <thead>
                 <tr>
-                    <th>Статусы</th>
-                    <th>Состояние</th>
-                    <th>Позывной</th>
-                    <th>Ф.И.О</th>
+                    <th>Статус</th>
+                    <th>Подтверждение</th>
+                    <th>ID</th>
+                    <th>ФИО</th>
                     <th>Телефон</th>
-                    <th>Условия работы</th>
-                    <th>Баланс</th>
-                    <th>Лимит</th>
+                    <th>Тип</th>
+                    <th>Заказы</th>
+                    <th>Отмены</th>
                     <th>ВУ</th>
                 </tr>
             </thead>
             <tbody id="drivers-table-body">
-                {{-- Можно отрендерить начальные данные через цикл, если требуется --}}
-                @foreach($drivers as $driver)
-                <tr>
-                    <td>Новый пользователь</td>
-                    <td><span class="status-busy">Не подтвержден</span></td>
-                    <td>{{ $driver->id }}</td>
-                    <td>{{ $driver->full_name }}</td>
-                    <td>{{ $driver->phone }}</td>
-                    <td>Основной</td>
-                    <td>0</td>
-                    <td>0</td>
-                    <td>Не указано</td>
-                </tr>
-                @endforeach
             </tbody>
         </table>
         <div class="main__table-footer">
@@ -118,35 +104,60 @@ function updateDrivers() {
     $.ajax({
         url: "{{ route('dispatcher.backend.drivers.list') }}",
         method: "GET",
-        success: function(data) {
+        success: function(response) {
             let tbody = $('#drivers-table-body');
             tbody.empty();
-            data.forEach(function(driver) {
-                let rawPhone = driver.phone.replace(/\D/g, '');
-                let formattedPhone = driver.phone;
-                if (rawPhone.length === 9) {
-                    formattedPhone = '+996 ' + rawPhone.substr(0, 3) + ' ' + rawPhone.substr(3, 2) +
-                        '-' + rawPhone.substr(5, 2) + '-' + rawPhone.substr(7, 2);
-                }
-                let row = `<tr>
-                    <td>Новый пользователь</td>
-                    <td><span class="status-busy">Не подтвержден</span></td>
-                    <td>${driver.id}</td>
-                    <td>${driver.full_name}</td>
-                    <td>+996 ${formattedPhone}</td>
-                    <td>Основной</td>
-                    <td>0</td>
-                    <td>0</td>
-                    <td>Не указано</td>
-                </tr>`;
-                tbody.append(row);
-            });
+
+            let drivers = Array.isArray(response) ? response : (response.data || []);
+
+            if (drivers && drivers.length > 0) {
+                drivers.forEach(function(driver) {
+                    let rawPhone = driver.phone ? driver.phone.replace(/\D/g, '') : '';
+                    let formattedPhone = driver.phone || '';
+
+                    if (rawPhone.length === 9) {
+                        formattedPhone = '+996 ' + rawPhone.substr(0, 3) + ' ' +
+                            rawPhone.substr(3, 2) + '-' +
+                            rawPhone.substr(5, 2) + '-' +
+                            rawPhone.substr(7, 2);
+                    }
+
+                    let row = '<tr>' +
+                        '<td>' + (driver.is_confirmed ? 'Подтвержден' : 'Новый пользователь') +
+                        '</td>' +
+                        '<td><span class="' + (driver.is_confirmed ? 'status-free' :
+                            'status-busy') + '">' +
+                        (driver.is_confirmed ? 'Подтвержден' : 'Не подтвержден') + '</span></td>' +
+                        '<td>' + (driver.id || '') + '</td>' +
+                        '<td>' + (driver.full_name || '') + '</td>' +
+                        '<td>' + formattedPhone + '</td>' +
+                        '<td>' + (driver.service_type || 'Основной') + '</td>' +
+                        '<td>0</td>' +
+                        '<td>0</td>' +
+                        '<td>' + (driver.license_number || 'Не указано') + '</td>' +
+                        '</tr>';
+
+                    tbody.append(row);
+                });
+            }
+
+            // Обновляем счетчик водителей
+            $('.main__table-driver button:first-child').text('Водители: ' + (drivers ? drivers.length : 0));
         },
-        error: function(xhr) {
-            console.error("Ошибка при получении списка водителей:", xhr.responseText);
+        error: function(xhr, status, error) {
+            console.error('Ошибка:', error);
+            console.log('Статус:', status);
+            console.log('Ответ сервера:', xhr.responseText);
         }
     });
 }
-setInterval(updateDrivers, 10000);
+
+// Обновляем данные каждые 30 секунд
+setInterval(updateDrivers, 30000);
+
+// Первое обновление при загрузке страницы
+$(document).ready(function() {
+    updateDrivers();
+});
 </script>
 @endpush

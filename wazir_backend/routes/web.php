@@ -47,14 +47,14 @@ Route::group(['prefix' => 'backend'], function() {
             return view('disp.new_order');
         })->name('dispatcher.backend.new_order');
 
-        Route::get('/drivers_control_edit', [\App\Http\Controllers\DriverCreationController::class, 'showStep1'])
+        Route::get('/drivers_control_edit', [DriverCreationController::class, 'showStep1'])
             ->name('dispatcher.backend.drivers_control_edit');
-        Route::post('/drivers_control_edit', [\App\Http\Controllers\DriverCreationController::class, 'processStep1'])
+        Route::post('/drivers_control_edit', [DriverCreationController::class, 'processStep1'])
             ->name('dispatcher.backend.process_drivers_control_edit');
 
-        Route::get('/drivers_num_edit/{driver}', [\App\Http\Controllers\DriverCreationController::class, 'showStep2'])
+        Route::get('/drivers_num_edit/{driver}', [DriverCreationController::class, 'showStep2'])
             ->name('dispatcher.backend.drivers_num_edit');
-        Route::post('/drivers_num_edit/{driver}', [\App\Http\Controllers\DriverCreationController::class, 'processStep2'])
+        Route::post('/drivers_num_edit/{driver}', [DriverCreationController::class, 'processStep2'])
             ->name('dispatcher.backend.process_drivers_num_edit');
 
         Route::get('/drivers_car_edit/{driver}', [DriverCreationController::class, 'showStep3'])
@@ -68,6 +68,15 @@ Route::group(['prefix' => 'backend'], function() {
         Route::get('/cars', [DispatcherController::class, 'cars'])->name('dispatcher.backend.cars');
         Route::get('/chat', [DispatcherController::class, 'chat'])->name('dispatcher.backend.chat');
         Route::get('/pay_balance', [DispatcherController::class, 'pay_balance'])->name('dispatcher.backend.pay_balance');
+        Route::get('/cars/list', [DispatcherController::class, 'getCarsList'])
+            ->name('dispatcher.backend.cars.list');
+
+        // Маршруты для чата
+        Route::get('/chat/list', [App\Http\Controllers\DispatcherController::class, 'getChatList'])
+            ->name('dispatcher.backend.chat.list');
+        Route::get('/chat/{chatId}/messages', [App\Http\Controllers\DispatcherController::class, 'getChatMessages']);
+        Route::post('/chat/{chatId}/send', [App\Http\Controllers\DispatcherController::class, 'sendChatMessage']);
+        Route::post('/chat/{chatId}/mark-read', [App\Http\Controllers\DispatcherController::class, 'markChatAsRead']);
     });
 });
 

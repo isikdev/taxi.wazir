@@ -42,7 +42,7 @@
     </div>
     <div class="main__subheader-balance">
         <img src="{{ asset('assets/img/disp/ico/balance.png') }}" alt="balance">
-        <p>Баланс: 10,000</p>
+        <p>Баланс: {{ number_format($dispatcherBalance ?? 0, 0, ',', ',') }}</p>
     </div>
 </div>
 <div class="main__paybalance">
@@ -72,34 +72,56 @@
                         @if(!$driver->is_confirmed)
                         <span class="status-busy">Новый пользователь</span>
                         @else
-                        Не сущ
+                        {{ $driver->call_sign ?? ($driver->callsign ?? 'Не назначен') }}
                         @endif
                     </td>
                     <td>
-                        <a href="tel:{{ $driver->phone }}">+996 {{ $driver->phone }}</a>
+                        <a href="tel:{{ $driver->phone }}">{{ $driver->phone }}</a>
+                    </td>
+                    <td>
+                        @if(!$driver->is_confirmed)
+                        <span class="status-busy">Новый пользователь</span>
+                        @elseif($driver->car && is_object($driver->car))
+                        {{ $driver->car->brand ?? 'Не указана' }}
+                        @elseif(isset($driver->car_brand))
+                        {{ $driver->car_brand }}
+                        @elseif(isset($driver->brand))
+                        {{ $driver->brand }}
+                        @elseif(isset($driver->auto) && is_object($driver->auto))
+                        {{ $driver->auto->brand ?? 'Не указана' }}
+                        @else
+                        Не указана
+                        @endif
+                    </td>
+                    <td>
+                        @if(!$driver->is_confirmed)
+                        <span class="status-busy">Новый пользователь</span>
+                        @elseif($driver->car && is_object($driver->car))
+                        {{ $driver->car->model ?? 'Не указан' }}
+                        @elseif(isset($driver->car_model))
+                        {{ $driver->car_model }}
+                        @elseif(isset($driver->model))
+                        {{ $driver->model }}
+                        @elseif(isset($driver->auto) && is_object($driver->auto))
+                        {{ $driver->auto->model ?? 'Не указан' }}
+                        @else
+                        Не указан
+                        @endif
                     </td>
                     <td>
                         @if(!$driver->is_confirmed)
                         <span class="status-busy">Новый пользователь</span>
                         @else
-                        Не сущ
-                        @endif
-                    </td>
-                    <td>
-                        @if(!$driver->is_confirmed)
-                        <span class="status-busy">Новый пользователь</span>
+                        @if(is_object($driver->tariff))
+                        {{ $driver->tariff->name }}
+                        @elseif(is_string($driver->tariff))
+                        {{ $driver->tariff }}
                         @else
-                        Не сущ
+                        Не указан
+                        @endif
                         @endif
                     </td>
-                    <td>
-                        @if(!$driver->is_confirmed)
-                        <span class="status-busy">Новый пользователь</span>
-                        @else
-                        Не сущ
-                        @endif
-                    </td>
-                    <td>Не сущ</td>
+                    <td>{{ $driver->balance ?? 0 }}</td>
 
                     <td class="small-col 
             @if(!$driver->is_confirmed) disabled-cell @endif">
