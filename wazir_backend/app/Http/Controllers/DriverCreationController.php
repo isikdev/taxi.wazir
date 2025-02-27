@@ -72,6 +72,31 @@ class DriverCreationController extends Controller
         // Генерируем персональный номер
         $validated['personal_number'] = Str::random(17);
 
+        // Обработка телефонного номера в киргизском формате
+        if (!empty($validated['phone'])) {
+            // Нормализуем номер телефона, удаляем все нецифровые символы кроме плюса
+            $phone = preg_replace('/[^0-9+]/', '', $validated['phone']);
+            
+            // Добавляем киргизский код страны если его нет
+            if (!str_starts_with($phone, '+996')) {
+                // Если номер начинается с "0", убираем его
+                if (str_starts_with($phone, '0')) {
+                    $phone = substr($phone, 1);
+                }
+                
+                // Если начинается с "996", добавляем "+"
+                if (str_starts_with($phone, '996')) {
+                    $phone = '+' . $phone;
+                } 
+                // Если нет кода, но есть остальные цифры, добавляем код +996
+                else if (!str_starts_with($phone, '+')) {
+                    $phone = '+996' . $phone;
+                }
+            }
+            
+            $validated['phone'] = $phone;
+        }
+
         // Конвертируем даты в формат Y-m-d
         $validated['date_of_birth']       = Carbon::createFromFormat('d.m.Y', $validated['date_of_birth'])->format('Y-m-d');
         $validated['license_issue_date']  = Carbon::createFromFormat('d.m.Y', $validated['license_issue_date'])->format('Y-m-d');

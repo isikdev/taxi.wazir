@@ -187,11 +187,7 @@ function updateDrivers() {
 }
 
 $(document).ready(function() {
-    // Вызываем один раз при загрузке
     updateDrivers();
-
-    // Если нужно автообновление каждые 10 секунд, раскомментируйте:
-    // setInterval(updateDrivers, 10000);
 });
 </script>
 

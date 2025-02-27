@@ -29,9 +29,29 @@
 .main__table tbody td {
     border-bottom: 1px solid #444;
 }
+
+.alert {
+    padding: 10px 15px;
+    margin-bottom: 15px;
+    border-radius: 4px;
+}
+
+.alert-success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.alert-danger {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
 </style>
 @endpush
 @section('content')
+
+<div id="messageContainer" style="display: none;" class="alert"></div>
 
 <div class="main__subheader-paybalance">
     <div class="main__subheader-add">
@@ -66,7 +86,7 @@
 
             <tbody>
                 @foreach($drivers as $driver)
-                <tr>
+                <tr data-driver-id="{{ $driver->id }}">
                     <td>{{ $driver->full_name }}</td>
                     <td>
                         @if(!$driver->is_confirmed)
@@ -121,14 +141,14 @@
                         @endif
                         @endif
                     </td>
-                    <td>{{ $driver->balance ?? 0 }}</td>
+                    <td class="driver-balance">{{ $driver->balance ?? 0 }}</td>
 
                     <td class="small-col 
             @if(!$driver->is_confirmed) disabled-cell @endif">
                         @if($driver->is_confirmed)
-                        <form class="main__paybalance-table-td">
+                        <form class="main__paybalance-table-td balance-form">
                             <img src="{{ asset('assets/img/disp/ico/balance.png') }}" alt="balance">
-                            <input type="text" placeholder="150">
+                            <input type="text" class="balance-amount" placeholder="150">
                         </form>
                         @else
                         <span style="color: #aaa;">—</span>
@@ -138,7 +158,7 @@
                     <td class="small-col 
             @if(!$driver->is_confirmed) disabled-cell @endif">
                         @if($driver->is_confirmed)
-                        <button class="main__btn-short">Подтвердить</button>
+                        <button class="main__btn-short confirm-payment-btn">Подтвердить</button>
                         @else
                         <button class="main__btn-short" style="pointer-events:none; opacity:0.5;">
                             Подтвердить
@@ -146,7 +166,7 @@
                         @endif
                     </td>
 
-                    <td class="small-col 
+                    <td class="small-col payment-status
             @if(!$driver->is_confirmed) disabled-cell @endif">
                         В ожидании подтверждения
                     </td>
@@ -197,4 +217,78 @@
 @push('scripts')
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="{{ asset('assets/js/script.js') }}"></script>
+<script>
+$(document).ready(function() {
+    // CSRF токен для запросов
+    $.ajaxSetup({
+        headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+        }
+    });
+    
+    // Обработка нажатия на кнопку "Подтвердить"
+    $('.confirm-payment-btn').click(function() {
+        const row = $(this).closest('tr');
+        const driverId = row.data('driver-id');
+        const amountInput = row.find('.balance-amount');
+        const amount = amountInput.val();
+        const statusCell = row.find('.payment-status');
+        const balanceCell = row.find('.driver-balance');
+        
+        // Проверка на пустое поле
+        if (!amount || isNaN(amount) || parseFloat(amount) <= 0) {
+            showMessage('Пожалуйста, введите корректную сумму пополнения', 'danger');
+            return;
+        }
+        
+        // Отправка запроса на пополнение баланса
+        $.ajax({
+            url: '{{ route("dispatcher.backend.process_balance_payment") }}',
+            type: 'POST',
+            data: {
+                _token: '{{ csrf_token() }}',
+                driver_id: driverId,
+                amount: amount
+            },
+            beforeSend: function() {
+                statusCell.text('Обработка...');
+            },
+            success: function(response) {
+                if (response.success) {
+                    statusCell.text('Успешно выполнено');
+                    balanceCell.text(response.new_balance);
+                    amountInput.val('');
+                    showMessage('Баланс успешно пополнен', 'success');
+                    
+                    // Сброс статуса через 3 секунды
+                    setTimeout(function() {
+                        statusCell.text('В ожидании подтверждения');
+                    }, 3000);
+                } else {
+                    statusCell.text('Ошибка');
+                    showMessage('Произошла ошибка при пополнении баланса', 'danger');
+                }
+            },
+            error: function() {
+                statusCell.text('Ошибка');
+                showMessage('Произошла ошибка при пополнении баланса', 'danger');
+            }
+        });
+    });
+    
+    // Функция отображения сообщения
+    function showMessage(message, type) {
+        const container = $('#messageContainer');
+        container.removeClass('alert-success alert-danger');
+        container.addClass('alert-' + type);
+        container.text(message);
+        container.show();
+        
+        // Скрываем сообщение через 3 секунды
+        setTimeout(function() {
+            container.hide();
+        }, 3000);
+    }
+});
+</script>
 @endpush

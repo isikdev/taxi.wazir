@@ -148,7 +148,7 @@
                 <div class="form-group">
                     <label for="phone">Номер телефона</label>
                     <input type="text" id="phone" name="phone" placeholder="+996 000 00 00 00" autocomplete="off"
-                        value="{{ old('phone') }}" />
+                        value="{{ old('phone', $driver->phone ?? '') }}" />
                     @error('phone')
                     <p class="invalid">{{ $message }}</p>
                     @enderror
@@ -301,12 +301,10 @@
 <script src="{{ asset('assets/js/script.js') }}"></script>
 <script>
 $(document).ready(function() {
-    // Маска для дат: формат dd.mm.yyyy
-    $('#dob').mask('00.00.0000');
-    $('#issue-date').mask('00.00.0000');
-    $('#expiry-date').mask('00.00.0000');
-
-    // Маска для телефона (пример для кыргызского номера)
+    // Инициализация datepicker
+    $('#date_of_birth, #license_issue_date, #license_expiry_date').mask('00.00.0000');
+    
+    // Инициализация маски для телефона в киргизском формате
     $('#phone').mask('+996 000 00 00 00');
 
     // Маска для ВУ (№ Удостоверения) - максимум 9 символов, заглавные

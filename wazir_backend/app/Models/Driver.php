@@ -41,8 +41,68 @@ class Driver extends Model
         'child_seat',  
         'parking_car',
         'tariff_extra',
-        'is_confirmed'
+        'is_confirmed',
+        
+        // Новые поля для отслеживания статуса анкеты
+        'survey_status',
+        'rejection_reason',
+        'approved_at',
+        
+        // Поле для баланса водителя
+        'balance',
+        'status'
     ];
+
+    // При создании водителя устанавливаем значение по умолчанию для баланса
+    protected $attributes = [
+        'balance' => 0,
+        'status' => 'offline'
+    ];
+
+    /**
+     * Мутатор для атрибута phone
+     * Обеспечивает форматирование телефонного номера с кодом страны +996
+     */
+    public function setPhoneAttribute($value)
+    {
+        // Нормализуем номер телефона, удаляем все нецифровые символы кроме плюса
+        $phone = preg_replace('/[^0-9+]/', '', $value);
+        
+        // Добавляем киргизский код страны если его нет
+        if (!str_starts_with($phone, '+996')) {
+            // Если номер начинается с "0", убираем его
+            if (str_starts_with($phone, '0')) {
+                $phone = substr($phone, 1);
+            }
+            
+            // Если начинается с "996", добавляем "+"
+            if (str_starts_with($phone, '996')) {
+                $phone = '+' . $phone;
+            } 
+            // Если нет кода, но есть остальные цифры, добавляем код +996
+            else if (!empty($phone) && !str_starts_with($phone, '+')) {
+                $phone = '+996' . $phone;
+            }
+        }
+        
+        $this->attributes['phone'] = $phone;
+    }
+
+    /**
+     * Связь с моделью Vehicle (автомобиль водителя)
+     */
+    public function vehicle()
+    {
+        return $this->hasOne(DriverVehicle::class);
+    }
+
+    /**
+     * Связь с моделью Transaction (история транзакций)
+     */
+    public function transactions()
+    {
+        return $this->hasMany(Transaction::class);
+    }
 
     public function isConfirmed()
     {

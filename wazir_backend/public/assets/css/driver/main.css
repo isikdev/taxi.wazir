@@ -51,7 +51,7 @@ a {
 abbr[title] {
   border-bottom: none;
   -webkit-text-decoration: underline dotted;
-          text-decoration: underline dotted;
+  text-decoration: underline dotted;
 }
 
 b,
@@ -114,9 +114,9 @@ select {
 }
 
 button,
-[type=button],
-[type=reset],
-[type=submit] {
+[type="button"],
+[type="reset"],
+[type="submit"] {
   -webkit-appearance: button;
 }
 
@@ -141,23 +141,23 @@ textarea {
   overflow: auto;
 }
 
-[type=checkbox],
-[type=radio] {
+[type="checkbox"],
+[type="radio"] {
   box-sizing: border-box;
   padding: 0;
 }
 
-[type=number]::-webkit-inner-spin-button,
-[type=number]::-webkit-outer-spin-button {
+[type="number"]::-webkit-inner-spin-button,
+[type="number"]::-webkit-outer-spin-button {
   height: auto;
 }
 
-[type=search] {
+[type="search"] {
   -webkit-appearance: textfield;
   outline-offset: -2px;
 }
 
-[type=search]::-webkit-search-decoration {
+[type="search"]::-webkit-search-decoration {
   -webkit-appearance: none;
 }
 
@@ -401,7 +401,7 @@ template {
 }
 .survey-3 .form-label {
   color: #999;
-  font-size: 12px;
+  font-size: 16px;
   margin-bottom: 5px;
   display: block;
 }
@@ -854,19 +854,19 @@ template {
   color: #a7a7a7;
   font-size: 12px;
 }
-.settings-item__right input[type=checkbox] {
+.settings-item__right input[type="checkbox"] {
   width: 51px;
   height: 31px;
   -webkit-appearance: none;
-     -moz-appearance: none;
-          appearance: none;
+  -moz-appearance: none;
+  appearance: none;
   background: #e9e9ea;
   border-radius: 15.5px;
   position: relative;
   cursor: pointer;
   transition: 0.3s ease all;
 }
-.settings-item__right input[type=checkbox]:before {
+.settings-item__right input[type="checkbox"]:before {
   content: "";
   position: absolute;
   left: 2px;
@@ -878,16 +878,16 @@ template {
   transition: 0.3s ease all;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
-.settings-item__right input[type=checkbox]:checked {
+.settings-item__right input[type="checkbox"]:checked {
   background: #34c759;
 }
-.settings-item__right input[type=checkbox]:checked:before {
+.settings-item__right input[type="checkbox"]:checked:before {
   left: calc(100% - 29px);
 }
-.settings-item__right input[type=checkbox]:active:before {
+.settings-item__right input[type="checkbox"]:active:before {
   width: 35px;
 }
-.settings-item__right input[type=checkbox]:disabled {
+.settings-item__right input[type="checkbox"]:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
@@ -1216,4 +1216,4 @@ template {
 .profile__balance {
   padding: 24px;
   margin: 24px 0;
-}/*# sourceMappingURL=main.css.map */
+} /*# sourceMappingURL=main.css.map */

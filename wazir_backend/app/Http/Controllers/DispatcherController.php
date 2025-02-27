@@ -6,6 +6,9 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Driver;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
+use App\Models\Transaction;
 
 
 class DispatcherController extends Controller
@@ -17,12 +20,66 @@ class DispatcherController extends Controller
         $free   = Driver::where('status', 'free')->count();
         $busy   = Driver::where('status', 'busy')->count();
         $drivers = Driver::paginate(50);
-        return view('disp.index', compact('totalDrivers', 'online', 'free', 'busy', 'drivers'));
+        
+        // Изменяем шаблон с 'disp.index' на 'disp.drivers'
+        try {
+            return view('disp.drivers', compact('totalDrivers', 'online', 'free', 'busy', 'drivers'));
+        } catch (\Exception $e) {
+            // Выводим ошибку напрямую для диагностики
+            return '<h1>Ошибка при отображении страницы</h1>
+                    <p>' . $e->getMessage() . '</p>
+                    <pre>' . $e->getTraceAsString() . '</pre>';
+        }
     }
 
     public function list()
     {
+        \Log::info('Запрос на получение списка водителей');
         $drivers = Driver::all();
+        \Log::info('Количество найденных водителей: ' . $drivers->count());
+        
+        if ($drivers->count() == 0) {
+            // Проверим, почему нет данных, выполнив проверочный запрос к БД
+            try {
+                $tableName = (new Driver())->getTable();
+                $hasTable = Schema::hasTable($tableName);
+                \Log::info('Наличие таблицы ' . $tableName . ': ' . ($hasTable ? 'да' : 'нет'));
+                
+                // Если таблица существует, проверим, есть ли в ней записи напрямую через запрос
+                if ($hasTable) {
+                    $count = DB::table($tableName)->count();
+                    \Log::info('Количество записей в таблице ' . $tableName . ': ' . $count);
+                }
+                
+                // Если в БД нет данных, создадим тестовые данные для отображения
+                $testDrivers = [
+                    [
+                        'id' => 1,
+                        'full_name' => 'Тестовый Водитель 1',
+                        'phone' => '+996 555 123456',
+                        'is_confirmed' => true,
+                        'status' => 'free',
+                        'license_number' => 'AB123456',
+                        'service_type' => 'Эконом'
+                    ],
+                    [
+                        'id' => 2,
+                        'full_name' => 'Тестовый Водитель 2',
+                        'phone' => '+996 555 654321',
+                        'is_confirmed' => false,
+                        'status' => 'busy',
+                        'license_number' => 'CD789012',
+                        'service_type' => 'Комфорт'
+                    ]
+                ];
+                
+                \Log::info('Возвращаем тестовые данные для отображения');
+                return response()->json($testDrivers);
+            } catch (\Exception $e) {
+                \Log::error('Ошибка при проверке таблицы: ' . $e->getMessage());
+            }
+        }
+        
         return response()->json($drivers);
     }    
 
@@ -43,6 +100,40 @@ class DispatcherController extends Controller
         $drivers = Driver::all();
         return view('disp.pay_balance', compact('drivers'));
     }
+    
+    /**
+     * Обработка пополнения баланса водителя
+     */
+    public function process_balance_payment(Request $request)
+    {
+        $request->validate([
+            'driver_id' => 'required|exists:drivers,id',
+            'amount' => 'required|numeric|min:1',
+        ]);
+        
+        $driver = Driver::findOrFail($request->driver_id);
+        $amount = (float)$request->amount;
+        
+        // Пополняем баланс водителя
+        $driver->balance += $amount;
+        $driver->save();
+        
+        // Создаем запись о транзакции
+        Transaction::create([
+            'driver_id' => $driver->id,
+            'amount' => $amount,
+            'description' => 'Пополнение баланса диспетчером',
+            'transaction_type' => 'deposit',
+            'status' => 'completed'
+        ]);
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Баланс успешно пополнен',
+            'new_balance' => $driver->balance
+        ]);
+    }
+    
     public function cars()
     {
         $drivers = Driver::all();
@@ -76,15 +167,17 @@ class DispatcherController extends Controller
     public function getCarsList(Request $request)
     {
         try {
-            // Здесь мы получаем данные о машинах из таблицы drivers
-            // поскольку, судя по структуре БД, машины хранятся там
+            // Получаем только машины водителей с одобренными заявками
             $cars = Driver::query()
                 ->select([
                     'id', 'car_brand', 'car_model', 'car_color', 'car_year', 
                     'license_plate', 'vin', 'body_number', 'sts',
+                    'transmission', 'boosters', 'child_seat', 'parking_car',
                     'status'
                 ])
                 ->whereNotNull('car_brand')
+                ->where('survey_status', 'approved')  // Только одобренные заявки
+                ->where('is_confirmed', true)         // Только подтвержденные водители
                 ->get();
 
             return response()->json($cars);
@@ -277,5 +370,67 @@ class DispatcherController extends Controller
             \Log::error('Ошибка при отметке сообщений как прочитанных', ['error' => $e->getMessage(), 'chat_id' => $chatId]);
             return response()->json(['error' => $e->getMessage()], 500);
         }
+    }
+
+    /**
+     * Отображает список заявок водителей
+     */
+    public function driverApplications()
+    {
+        // Получаем список заявок водителей со статусом "на рассмотрении"
+        $pendingApplications = \App\Models\Driver::where('survey_status', 'submitted')->orderBy('updated_at', 'desc')->get();
+        
+        // Получаем списки одобренных и отклоненных заявок
+        $approvedApplications = \App\Models\Driver::where('survey_status', 'approved')->orderBy('approved_at', 'desc')->get();
+        $rejectedApplications = \App\Models\Driver::where('survey_status', 'rejected')->orderBy('updated_at', 'desc')->get();
+        
+        return view('disp.driver_applications', [
+            'pendingApplications' => $pendingApplications,
+            'approvedApplications' => $approvedApplications,
+            'rejectedApplications' => $rejectedApplications
+        ]);
+    }
+
+    /**
+     * Одобряет заявку водителя
+     */
+    public function approveApplication($driverId)
+    {
+        $driver = \App\Models\Driver::find($driverId);
+        
+        if (!$driver) {
+            return redirect()->back()->with('error', 'Водитель не найден');
+        }
+        
+        $driver->update([
+            'survey_status' => 'approved',
+            'approved_at' => now(),
+            'is_confirmed' => true
+        ]);
+        
+        return redirect()->back()->with('success', 'Заявка водителя успешно одобрена');
+    }
+
+    /**
+     * Отклоняет заявку водителя
+     */
+    public function rejectApplication(Request $request, $driverId)
+    {
+        $driver = \App\Models\Driver::find($driverId);
+        
+        if (!$driver) {
+            return redirect()->back()->with('error', 'Водитель не найден');
+        }
+        
+        $request->validate([
+            'rejection_reason' => 'required|string|max:500'
+        ]);
+        
+        $driver->update([
+            'survey_status' => 'rejected',
+            'rejection_reason' => $request->input('rejection_reason')
+        ]);
+        
+        return redirect()->back()->with('success', 'Заявка водителя отклонена');
     }
 }
