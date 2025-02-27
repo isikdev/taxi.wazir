@@ -109,8 +109,8 @@
             // Получаем только цифры из введенного номера
             var phoneDigits = $('#phone').val().replace(/[^0-9]/g, '');
 
-            // Проверяем длину (для Киргизии должно быть 9 цифр без кода страны)
-            if (phoneDigits.length === 9 && iti.isValidNumber()) {
+            // Активируем кнопку, если введено не менее 8 цифр (достаточно для распознавания номера)
+            if (phoneDigits.length >= 8) {
                 submitButton.addClass('main__btn-active');
                 submitButton.prop('disabled', false);
             } else {
@@ -124,15 +124,18 @@
             // Получаем номер с кодом страны
             var fullNumber = iti.getNumber();
 
-            // Проверяем, что это киргизский номер
-            if (!fullNumber.startsWith('+996')) {
-                e.preventDefault(); // Отменяем отправку
-                alert('Пожалуйста, введите киргизский номер телефона (+996)');
-                return false;
-            }
-
             // Заменяем значение в поле перед отправкой
             phoneInput.value = fullNumber;
+
+            // Проверяем, что это киргизский номер, но не блокируем отправку
+            if (!fullNumber.startsWith('+996')) {
+                // Предупреждаем пользователя
+                if (!confirm(
+                        'Введенный номер не является киргизским (+996). Продолжить с этим номером?')) {
+                    e.preventDefault(); // Отменяем отправку только если пользователь отказался
+                    return false;
+                }
+            }
         });
     });
     </script>
