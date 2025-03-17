@@ -9,24 +9,35 @@ return new class extends Migration
     public function up()
     {
         Schema::table('drivers', function (Blueprint $table) {
-            // Если каких-то столбцов у вас уже нет - они добавятся.
-            // Если некоторые столбцы уже существуют - Laravel выдаст ошибку при миграции,
-            // поэтому можно сначала проверить через phpMyAdmin / DataGrip.
-
-            // КПП, бустеры, child_seat (строковое), парковая машина, дополнительный тариф
-            $table->string('transmission')->nullable()->after('car_year');
-            $table->string('boosters')->nullable()->after('transmission');
-            $table->string('child_seat')->nullable()->after('boosters');
-            $table->string('parking_car')->nullable()->after('child_seat');
-            $table->string('tariff_extra')->nullable()->after('tariff');
-
+            // Добавляем поля только если они не существуют
+            
+            if (!Schema::hasColumn('drivers', 'transmission')) {
+                $table->string('transmission')->nullable()->after('car_year');
+            }
+            
+            if (!Schema::hasColumn('drivers', 'boosters')) {
+                $table->string('boosters')->nullable()->after('transmission');
+            }
+            
+            if (!Schema::hasColumn('drivers', 'child_seat')) {
+                $table->string('child_seat')->nullable()->after('boosters');
+            }
+            
+            if (!Schema::hasColumn('drivers', 'parking_car')) {
+                $table->string('parking_car')->nullable()->after('child_seat');
+            }
+            
+            if (!Schema::hasColumn('drivers', 'tariff_extra')) {
+                $table->string('tariff_extra')->nullable()->after('tariff');
+            }
         });
     }
 
     public function down()
     {
         Schema::table('drivers', function (Blueprint $table) {
-            $table->dropColumn([
+            // Удаляем поля только если они существуют
+            $columns = [
                 'body_number',
                 'sts',
                 'callsign',
@@ -35,7 +46,13 @@ return new class extends Migration
                 'child_seat',
                 'parking_car',
                 'tariff_extra',
-            ]);
+            ];
+            
+            foreach ($columns as $column) {
+                if (Schema::hasColumn('drivers', $column)) {
+                    $table->dropColumn($column);
+                }
+            }
         });
     }
 };

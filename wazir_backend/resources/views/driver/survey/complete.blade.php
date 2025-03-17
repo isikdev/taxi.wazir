@@ -245,12 +245,6 @@
                                 <input type="text" class="form-control"
                                     value="{{ $data['expiry_date'] ?? 'Не указан' }}" disabled>
                             </div>
-                            
-                            <div class="form-group">
-                                <label class="form-label">Позывной</label>
-                                <input type="text" class="form-control"
-                                    value="{{ $data['callsign'] ?? 'Не указан' }}" disabled>
-                            </div>
                         </div>
                     </div>
 
@@ -415,16 +409,16 @@
                             @if(isset($data['documents']['passport_front']))
                             <div class="document-item">
                                 <img src="{{ asset('storage/' . $data['documents']['passport_front']) }}"
-                                    alt="Лицевая сторона паспорта">
-                                <div class="document-label">Лицевая сторона паспорта</div>
+                                    alt="Паспорт (лицевая сторона)">
+                                <p>Паспорт (лицевая сторона)</p>
                             </div>
                             @endif
 
                             @if(isset($data['documents']['passport_back']))
                             <div class="document-item">
                                 <img src="{{ asset('storage/' . $data['documents']['passport_back']) }}"
-                                    alt="Задняя сторона паспорта">
-                                <div class="document-label">Задняя сторона паспорта</div>
+                                    alt="Паспорт (обратная сторона)">
+                                <p>Паспорт (обратная сторона)</p>
                             </div>
                             @endif
                         </div>
@@ -433,17 +427,17 @@
                         <div class="documents-grid">
                             @if(isset($data['documents']['driving_license_front']))
                             <div class="document-item">
-                                <img src="{{ asset('storage/' . $data['documents']['driving_license_front']) }}"
-                                    alt="Лицевая сторона ВУ">
-                                <div class="document-label">Лицевая сторона ВУ</div>
+                                <img src="{{ asset('storage/' . $data['documents']['license_front']) }}"
+                                    alt="Водительское удостоверение (лицевая сторона)">
+                                <p>Водительское удостоверение (лицевая сторона)</p>
                             </div>
                             @endif
 
                             @if(isset($data['documents']['driving_license_back']))
                             <div class="document-item">
-                                <img src="{{ asset('storage/' . $data['documents']['driving_license_back']) }}"
-                                    alt="Задняя сторона ВУ">
-                                <div class="document-label">Задняя сторона ВУ</div>
+                                <img src="{{ asset('storage/' . $data['documents']['license_back']) }}"
+                                    alt="Водительское удостоверение (обратная сторона)">
+                                <p>Водительское удостоверение (обратная сторона)</p>
                             </div>
                             @endif
                         </div>

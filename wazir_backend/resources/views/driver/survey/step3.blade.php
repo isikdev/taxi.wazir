@@ -25,10 +25,9 @@
                 
                 <div class="form-group">
                     <label class="form-label">Введите страну</label>
-                    <div class="form-input-with-arrow" id="countrySelector">
-                        <input type="text" name="country"
-                            value="{{ old('country', session('country', 'Выберите страну')) }}" readonly>
-                        <span class="arrow">›</span>
+                    <input type="hidden" name="country" value="Киргизия">
+                    <div class="form-input-with-arrow">
+                        <input type="text" readonly value="Киргизия" class="form-control">
                     </div>
                 </div>
 
@@ -76,11 +75,7 @@
                         value="{{ old('invitation_code', session('invitation_code', '')) }}">
                 </div>
 
-                <button type="submit"
-                    class="main__btn {{ (old('country', session('country', '')) != 'Выберите страну' && 
-                                         !empty(old('fullname', session('fullname', ''))) && 
-                                         !empty(old('license_number', session('license_number', ''))) && 
-                                         !empty(old('issue_date', session('issue_date', '')))) ? 'main__btn-active' : '' }}"
+                <button type="submit" class="main__btn" id="submitButton"
                     style="margin: 20px 0 30px 0;">Подтвердить</button>
             </form>
         </div>
@@ -113,14 +108,12 @@
         });
 
         function checkFormCompletion() {
-            const country = document.querySelector('#countrySelector input').value;
             const name = document.querySelector('input[name="fullname"]').value;
             const licenseNumber = document.querySelector('input[name="license_number"]').value;
             const issueDate = document.querySelector('input[name="issue_date"]').value;
-            const submitButton = document.querySelector('.main__btn');
+            const submitButton = document.querySelector('#submitButton');
 
             if (
-                country !== 'Выберите страну' &&
                 name.trim() !== '' &&
                 licenseNumber.trim() !== '' &&
                 issueDate.length === 10
@@ -135,16 +128,6 @@
             input.addEventListener('input', checkFormCompletion);
         });
 
-        const countrySelector = document.getElementById('countrySelector');
-        countrySelector.addEventListener('click', function() {
-            const input = this.querySelector('input');
-            if (input.value === 'Выберите страну') {
-                input.value = 'Киргизия';
-                checkFormCompletion();
-            }
-        });
-
-        // Если страна уже выбрана, проверим форму при загрузке
         checkFormCompletion();
     });
     </script>

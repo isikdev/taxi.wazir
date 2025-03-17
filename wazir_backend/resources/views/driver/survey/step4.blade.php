@@ -207,6 +207,18 @@
                         <form action="{{ route('driver.survey.processStep4') }}" method="POST">
                             @csrf
 
+                            @if ($errors->any())
+                            <div
+                                style="background-color: #ffdddd; border: 1px solid #ff0000; padding: 10px; margin-bottom: 15px; border-radius: 5px;">
+                                <strong>Ошибки при заполнении формы:</strong>
+                                <ul style="margin-top: 5px; padding-left: 20px;">
+                                    @foreach ($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                            @endif
+
                             @if(request()->has('redirect_to_complete'))
                             <input type="hidden" name="redirect_to_complete" value="1">
                             @endif
@@ -290,25 +302,39 @@
 
                             <div class="form-group">
                                 <label for="number">Введите гос.номер</label>
-                                <input type="text" id="number" name="license_plate" placeholder="01KG123ABC"
-                                    class="form-input" value="{{ old('license_plate', session('license_plate', '')) }}">
+                                <input type="text" id="number" name="license_plate" class="form-input"
+                                    placeholder="00 KG 000 AAA"
+                                    style="letter-spacing: 1px; font-size: 16px; text-align: left; background-color: #fcfcfc; text-transform: uppercase;"
+                                    value="{{ old('license_plate', session('license_plate', '')) }}">
+                                <small style="display: block; text-align: left; margin-top: 5px; color: #777;">
+                                    Формат: 00 KG 000 AAA
+                                </small>
                             </div>
 
-                            <!-- Новые поля -->
+                            <!-- Поле VIN с улучшенной маской -->
                             <div class="form-group">
                                 <label class="form-label">Введите VIN</label>
                                 <div class="form-input-with-arrow">
-                                    <input type="text" name="vin" placeholder="VIN номер" maxlength="17"
+                                    <input type="text" id="vin_input" name="vin" placeholder="VIN номер (17 символов)"
+                                        maxlength="17" style="text-transform: uppercase; letter-spacing: 1px;"
                                         value="{{ old('vin', session('vin', '')) }}">
                                 </div>
+                                <small style="display: block; text-align: left; margin-top: 5px; color: #777;">
+                                    17 символов: цифры и буквы латиницей (кроме I, O, Q)
+                                </small>
                             </div>
 
                             <div class="form-group">
                                 <label class="form-label">Введите номер кузова</label>
                                 <div class="form-input-with-arrow">
-                                    <input type="text" name="body_number" placeholder="Номер кузова"
+                                    <input type="text" id="body_number_input" name="body_number"
+                                        placeholder="Номер кузова (17 символов)" maxlength="17"
+                                        style="text-transform: uppercase; letter-spacing: 1px;"
                                         value="{{ old('body_number', session('body_number', '')) }}">
                                 </div>
+                                <small style="display: block; text-align: left; margin-top: 5px; color: #777;">
+                                    17 символов: цифры и буквы латиницей (кроме I, O, Q)
+                                </small>
                             </div>
 
                             <div class="form-group">
@@ -449,18 +475,18 @@
 
                             <button type="submit" id="submit-btn"
                                 class="main__btn {{ (old('car_brand', session('car_brand', '')) && 
-                                                   old('car_model', session('car_model', '')) && 
-                                                   old('car_color', session('car_color', '')) && 
-                                                   old('car_year', session('car_year', '')) && 
-                                                   old('license_plate', session('license_plate', '')) &&
-                                                   old('vin', session('vin', '')) &&
-                                                   old('body_number', session('body_number', '')) &&
-                                                   old('sts', session('sts', '')) &&
-                                                   old('transmission', session('transmission', '')) &&
-                                                   old('boosters', session('boosters', '')) &&
-                                                   old('tariff', session('tariff', '')) &&
-                                                   old('service_type', session('service_type', '')) &&
-                                                   old('category', session('category', '')) ) ? 'main__btn-active' : '' }}">
+                                                    old('car_model', session('car_model', '')) && 
+                                                    old('car_color', session('car_color', '')) && 
+                                                    old('car_year', session('car_year', '')) && 
+                                                    old('license_plate', session('license_plate', '')) &&
+                                                    old('vin', session('vin', '')) &&
+                                                    old('body_number', session('body_number', '')) &&
+                                                    old('sts', session('sts', '')) &&
+                                                    old('transmission', session('transmission', '')) &&
+                                                    old('boosters', session('boosters', '')) &&
+                                                    old('tariff', session('tariff', '')) &&
+                                                    old('service_type', session('service_type', '')) &&
+                                                    old('category', session('category', '')) ) ? 'main__btn-active' : '' }}">
                                 Продолжить
                             </button>
                         </form>
@@ -474,18 +500,175 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js"></script>
     <script>
     $(document).ready(function() {
-        // Маска для госномера
-        $('#number').mask('00AA000AAA', {
-            placeholder: "01KG123ABC",
+        // МАСКА ДЛЯ ГОСНОМЕРА - СТРОГОЕ ОГРАНИЧЕНИЕ
+        const $licenseInput = $('#number');
+
+        // Маскированный ввод для госномера с фиксированным форматом и CAPS LOCK
+        $licenseInput.mask('00 KG 000 AAA', {
+            placeholder: '__ KG ___ ___',
             translation: {
                 'A': {
-                    pattern: /[А-Яа-яA-Za-z]/
+                    pattern: /[A-Za-z]/,
+                    transform: function(val) {
+                        // Преобразование русских букв в латиницу и всегда в верхний регистр
+                        const russianToLatin = {
+                            'А': 'A',
+                            'В': 'B',
+                            'Е': 'E',
+                            'К': 'K',
+                            'М': 'M',
+                            'Н': 'H',
+                            'О': 'O',
+                            'Р': 'P',
+                            'С': 'C',
+                            'Т': 'T',
+                            'Х': 'X',
+                            'а': 'A',
+                            'в': 'B',
+                            'е': 'E',
+                            'к': 'K',
+                            'м': 'M',
+                            'н': 'H',
+                            'о': 'O',
+                            'р': 'P',
+                            'с': 'C',
+                            'т': 'T',
+                            'х': 'X'
+                        };
+                        if (russianToLatin[val]) {
+                            return russianToLatin[val];
+                        }
+                        return val.toUpperCase();
+                    }
                 },
                 '0': {
                     pattern: /[0-9]/
                 }
             }
         });
+
+        // ОБРАБОТКА VIN-КОДА
+        const $vinInput = $('#vin_input');
+
+        // Обработка VIN-кода: только цифры и буквы (кроме I, O, Q), всегда в верхнем регистре
+        $vinInput.on('input', function() {
+            let value = $(this).val();
+
+            // Преобразуем весь ввод в верхний регистр
+            value = value.toUpperCase();
+
+            // Удаляем недопустимые символы (I, O, Q и любые не-буквы, не-цифры)
+            value = value.replace(/[^A-HJ-NPR-Z0-9]/g, '');
+
+            // Ограничиваем до 17 символов
+            if (value.length > 17) {
+                value = value.substr(0, 17);
+            }
+
+            // Устанавливаем обработанное значение
+            $(this).val(value);
+
+            // Визуально отмечаем поле, если длина не равна 17
+            if (value.length === 17) {
+                $(this).css('border-color', '#4CAF50');
+            } else {
+                $(this).css('border-color', '');
+            }
+        });
+
+        // Инициализация для VIN, если есть начальное значение
+        if ($vinInput.val()) {
+            $vinInput.trigger('input');
+        }
+
+        // ОБРАБОТКА НОМЕРА КУЗОВА - аналогично VIN
+        const $bodyNumberInput = $('#body_number_input');
+
+        // Обработка номера кузова: только цифры и буквы (кроме I, O, Q), всегда в верхнем регистре
+        $bodyNumberInput.on('input', function() {
+            let value = $(this).val();
+
+            // Преобразуем весь ввод в верхний регистр
+            value = value.toUpperCase();
+
+            // Удаляем недопустимые символы (I, O, Q и любые не-буквы, не-цифры)
+            value = value.replace(/[^A-HJ-NPR-Z0-9]/g, '');
+
+            // Ограничиваем до 17 символов
+            if (value.length > 17) {
+                value = value.substr(0, 17);
+            }
+
+            // Устанавливаем обработанное значение
+            $(this).val(value);
+
+            // Визуально отмечаем поле, если длина не равна 17
+            if (value.length === 17) {
+                $(this).css('border-color', '#4CAF50');
+            } else {
+                $(this).css('border-color', '');
+            }
+        });
+
+        // Инициализация для номера кузова, если есть начальное значение
+        if ($bodyNumberInput.val()) {
+            $bodyNumberInput.trigger('input');
+        }
+
+        // Форматирование текущего значения, если оно есть
+        const initialValue = $licenseInput.val();
+        if (initialValue && initialValue.trim() !== '') {
+            // Извлекаем только цифры и буквы
+            const digits = initialValue.replace(/[^0-9]/g, '');
+            let letters = initialValue.replace(/[^A-Za-z]/g, '').toUpperCase();
+
+            // Конвертируем русские буквы
+            const russianToLatin = {
+                'А': 'A',
+                'В': 'B',
+                'Е': 'E',
+                'К': 'K',
+                'М': 'M',
+                'Н': 'H',
+                'О': 'O',
+                'Р': 'P',
+                'С': 'C',
+                'Т': 'T',
+                'Х': 'X'
+            };
+            letters = letters.split('').map(char => russianToLatin[char] || char).join('');
+
+            // Формируем значение в правильном формате
+            let formatted = '';
+            if (digits.length >= 2) {
+                formatted += digits.substring(0, 2);
+                formatted += ' KG ';
+
+                if (digits.length > 2) {
+                    formatted += digits.substring(2, Math.min(5, digits.length));
+
+                    // Добавляем нули, если цифр меньше 3
+                    while (formatted.length < 8) {
+                        formatted += '0';
+                    }
+                }
+
+                formatted += ' ';
+
+                if (letters.length > 0) {
+                    formatted += letters.substring(0, Math.min(3, letters.length));
+
+                    // Добавляем "A", если букв меньше 3
+                    while (formatted.length < 12) {
+                        formatted += 'A';
+                    }
+                } else {
+                    formatted += 'AAA';
+                }
+
+                $licenseInput.val(formatted);
+            }
+        }
 
         // Функционал выпадающих списков
         $('.custom-select input').on('click', function() {
@@ -589,8 +772,8 @@
 
             if (
                 brand && model && color && year && plate &&
-                vin.trim() !== '' &&
-                bodyNumber.trim() !== '' &&
+                vin && vin.length === 17 && // Проверяем что VIN имеет ровно 17 символов
+                bodyNumber && bodyNumber.length === 17 && // Проверяем что номер кузова имеет ровно 17 символов
                 sts.trim() !== '' &&
                 transmission && transmission !== 'Выберите КПП' &&
                 boosters && boosters !== 'Выберите количество' &&

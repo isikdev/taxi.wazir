@@ -28,10 +28,55 @@
     text-align: center;
     color: #fff;
 }
+
+.main__cars-subheader {
+    margin: 20px 0;
+}
+
+.main__cars-list {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+.main__subheader-cars-filter {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.main__subheader-filing select {
+    width: 150px;
+}
+
+.main__subheader-drivers-tags {
+    margin: 0 15px;
+}
+
+.main__subheader-drivers-tags ul {
+    padding: 15px 20px;
+    margin: 0;
+    white-space: nowrap;
+}
+
+.reset-filters-btn {
+    background-color: #47484c;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    padding: 14px 20px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.reset-filters-btn:hover {
+    background-color: #535357;
+}
 </style>
 @endpush
 @section('content')
-<div class="main__cars-subheader main__cars-list" style="margin: 20px 0;">
+<div class="main__cars-subheader main__cars-list">
     <div class="main__subheader-filing main__subheader-cars-filter">
         <form action="#">
             <select name="filing-date" id="status-filter">
@@ -65,9 +110,18 @@
             </select>
         </form>
     </div>
+
+    <div class="main__header-tags main__subheader-drivers-tags">
+        <ul>
+            <li>На линии 0 водителей</li>
+            <li><span class="status-span free"></span> 0 свободный</li>
+            <li><span class="status-span busy"></span> 0 занят</li>
+        </ul>
+    </div>
+
     <div class="main__subheader-balance">
         <img src="{{ asset('assets/img/disp/ico/balance.png') }}" alt="balance">
-        <p>Баланс: 10,000</p>
+        <p>Баланс: {{ number_format($totalBalance ?? 0, 0, '.', ',') }}</p>
     </div>
 </div>
 <div class="main__table-wrapper">
@@ -113,17 +167,21 @@
         </div>
     </div>
 </div>
-<!-- <p class="default__cars">Пока нету зарегистрированных в системе автомобилей</p>
-<h4 class="default__cars">Зарегистрированных водителей в системе: {{ $drivers->count() }}</h4> -->
+{{-- 
+<p class="default__cars">Пока нету зарегистрированных в системе автомобилей</p>
+<h4 class="default__cars">Зарегистрированных водителей в системе: 0</h4> 
+--}}
 @endsection
 @push('scripts')
+
+
+
+
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script>
-// Хранилище для всех автомобилей
 let allCars = [];
 let filteredCars = [];
 
-// Функция для загрузки данных об автомобилях
 function loadCars() {
     $.ajax({
         url: "{{ route('dispatcher.backend.cars.list') }}",
@@ -132,14 +190,10 @@ function loadCars() {
             allCars = Array.isArray(response) ? response : (response.data || []);
             filteredCars = [...allCars];
 
-            // Заполняем фильтры
             populateFilters();
-
-            // Отображаем данные
             renderCars();
-
-            // Добавляем кнопку сброса фильтров, если её ещё нет
             addResetButton();
+            updateStats();
         },
         error: function(xhr, status, error) {
             console.error('Ошибка при получении списка машин:', error);
@@ -147,7 +201,6 @@ function loadCars() {
     });
 }
 
-// Функция для заполнения селекторов фильтров
 function populateFilters() {
     const brands = new Set();
     const models = new Set();
@@ -161,7 +214,6 @@ function populateFilters() {
         if (car.car_year) years.add(car.car_year);
     });
 
-    // Сохраняем первые опции каждого селекта
     const brandSelect = $('#brand-filter');
     const modelSelect = $('#model-filter');
     const colorSelect = $('#color-filter');
@@ -172,13 +224,11 @@ function populateFilters() {
     const colorFirstOption = colorSelect.find('option:first').clone();
     const yearFirstOption = yearSelect.find('option:first').clone();
 
-    // Очищаем и добавляем первую опцию
     brandSelect.empty().append(brandFirstOption);
     modelSelect.empty().append(modelFirstOption);
     colorSelect.empty().append(colorFirstOption);
     yearSelect.empty().append(yearFirstOption);
 
-    // Добавляем отсортированные опции
     [...brands].sort().forEach(brand => {
         brandSelect.append(`<option value="${brand}">${brand}</option>`);
     });
@@ -196,7 +246,6 @@ function populateFilters() {
     });
 }
 
-// Функция для применения фильтров
 function applyFilters() {
     const statusFilter = $('#status-filter').val();
     const brandFilter = $('#brand-filter').val();
@@ -213,9 +262,11 @@ function applyFilters() {
     });
 
     renderCars();
+
+    // Обновляем статистику на странице
+    updateStats();
 }
 
-// Функция для отображения отфильтрованных данных
 function renderCars() {
     let tbody = $('#cars-table-body');
     tbody.empty();
@@ -238,66 +289,37 @@ function renderCars() {
             tbody.append(row);
         });
     } else {
-        // Если нет автомобилей после фильтрации, показываем сообщение
         tbody.append(
             '<tr><td colspan="10" class="default__cars">Нет автомобилей, соответствующих выбранным фильтрам</td></tr>'
         );
     }
 
-    // Обновляем счетчик автомобилей
     $('#cars-count').text('Автомобили: ' + filteredCars.length);
 }
 
-// События изменения фильтров
-function initEvents() {
-    $('#status-filter, #brand-filter, #model-filter, #color-filter, #year-filter').off('change').on('change',
-        function() {
-            // Снимаем атрибут disabled при выборе элемента
-            $(this).find('option:first').prop('disabled', true);
-
-            // Применяем фильтры
-            applyFilters();
-        });
-}
-
-// Добавление кнопки сброса фильтров
 function addResetButton() {
-    // Если кнопка уже существует, не добавляем новую
-    if ($('#reset-filters-btn').length > 0) {
-        return;
-    }
+    // Удаляем существующую кнопку сброса, если она есть
+    $('#reset-filters-btn').remove();
 
-    // Создаем кнопку после всех форм
-    $('.main__subheader-filing').append(
-        '<button type="button" id="reset-filters-btn" class="main__btn-short" style="margin-left: 10px;">Сбросить фильтры</button>'
+    // Создаем новую кнопку сброса с правильным классом стиля
+    $('.main__subheader-cars-filter').append(
+        $('<button>', {
+            id: 'reset-filters-btn',
+            class: 'reset-filters-btn',
+            text: 'Сбросить фильтры',
+            click: function(event) {
+                event.preventDefault();
+                $('#status-filter').val('');
+                $('#brand-filter').val('');
+                $('#model-filter').val('');
+                $('#color-filter').val('');
+                $('#year-filter').val('');
+                filteredCars = [...allCars];
+                renderCars();
+                updateStats();
+            }
+        })
     );
-
-    // Привязываем обработчик клика
-    $(document).off('click', '#reset-filters-btn').on('click', '#reset-filters-btn', function(e) {
-        console.log('Кнопка сброса нажата');
-        resetFilters();
-    });
-}
-
-// Сброс фильтров
-function resetFilters() {
-    console.log('Начинаем сброс фильтров');
-
-    try {
-        // Сбрасываем значения селекторов на первую опцию
-        $('#status-filter').val($('#status-filter option:first').val()).find('option:first').prop('disabled', false);
-        $('#brand-filter').val($('#brand-filter option:first').val()).find('option:first').prop('disabled', false);
-        $('#model-filter').val($('#model-filter option:first').val()).find('option:first').prop('disabled', false);
-        $('#color-filter').val($('#color-filter option:first').val()).find('option:first').prop('disabled', false);
-        $('#year-filter').val($('#year-filter option:first').val()).find('option:first').prop('disabled', false);
-
-        // Показываем все автомобили
-        filteredCars = [...allCars];
-        renderCars();
-
-    } catch (error) {
-        console.error('Ошибка при сбросе фильтров:', error);
-    }
 }
 
 // Обновляем данные каждые 30 секунд
@@ -307,11 +329,22 @@ setInterval(loadCars, 30000);
 $(document).ready(function() {
     loadCars();
 
-    // Добавляем обработчик для ручной инициализации
-    setTimeout(function() {
-        initEvents();
-        addResetButton();
-    }, 1000);
+    // Добавляем обработчики изменения значений фильтров
+    $(document).on('change', '#status-filter, #brand-filter, #model-filter, #color-filter, #year-filter',
+        function() {
+            applyFilters();
+        });
 });
+
+function updateStats() {
+    const online = filteredCars.length;
+    const free = filteredCars.filter(car => car.status === 'Свободен').length;
+    const busy = filteredCars.filter(car => car.status === 'Занят').length;
+
+    $('.main__subheader-drivers-tags ul li:nth-child(1)').text(`На линии ${online} водителей`);
+    $('.main__subheader-drivers-tags ul li:nth-child(2)').html(
+        `<span class="status-span free"></span> ${free} свободный`);
+    $('.main__subheader-drivers-tags ul li:nth-child(3)').html(`<span class="status-span busy"></span> ${busy} занят`);
+}
 </script>
 @endpush

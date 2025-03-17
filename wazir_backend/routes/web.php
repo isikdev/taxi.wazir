@@ -6,9 +6,10 @@ use App\Http\Controllers\DispatcherController;
 use App\Http\Controllers\DriverCreationController;
 use App\Http\Controllers\SurveyController;
 use App\Http\Controllers\DriverApplicationController;
+use App\Http\Controllers\OrderController;
 
 Route::get('/', function () {
-    return view('welcome');
+    return redirect()->route('dispatcher.backend.index');
 });
 
 Route::prefix('client')->group(function () {
@@ -19,6 +20,9 @@ Route::prefix('disp')->group(function () {
     Route::get('/', [DispatcherController::class, 'index'])->name('dispatcher.index');
     Route::get('/drivers', [DispatcherController::class, 'index'])->name('dispatcher.drivers');
     Route::get('/drivers/list', [DispatcherController::class, 'list'])->name('dispatcher.drivers.list');
+    Route::get('/maps', function() {
+        return view('disp.maps');
+    })->name('dispatcher.maps');
 });
 
 Route::prefix('driver')->group(function () {
@@ -59,21 +63,50 @@ Route::prefix('driver')->group(function () {
             return redirect()->route('driver.login');
         }
         
-        // Получаем водителя и связанные данные об автомобиле и транзакциях
-        $driver = \App\Models\Driver::with(['vehicle', 'transactions' => function($query) {
-            $query->orderBy('created_at', 'desc')->limit(20);
-        }])->find($driverId);
-        
-        if (!$driver || $driver->survey_status !== 'approved') {
-            return redirect()->route('driver.survey.applicationStatus');
+        try {
+            // Проверяем существование таблицы driver_vehicles
+            $driverVehicleTableExists = \Illuminate\Support\Facades\Schema::hasTable('driver_vehicles');
+            
+            // Получаем водителя
+            $driver = \App\Models\Driver::query();
+            
+            // Добавляем связь с автомобилем только если таблица существует
+            if ($driverVehicleTableExists) {
+                $driver->with(['vehicle']);
+            }
+            
+            // Добавляем связь с транзакциями
+            $driver->with(['transactions' => function($query) {
+                $query->orderBy('created_at', 'desc')->limit(20);
+            }]);
+            
+            // Получаем результат
+            $driver = $driver->find($driverId);
+            
+            if (!$driver) {
+                // Водитель не найден, очищаем сессию и перенаправляем на страницу входа
+                session()->forget('driver_id');
+                return redirect()->route('driver.login');
+            }
+            
+            // Проверяем статус анкеты
+            if ($driver->survey_status !== 'approved') {
+                return redirect()->route('driver.survey.applicationStatus');
+            }
+            
+            // Форматируем дату правильно, если она есть
+            if ($driver->date_of_birth) {
+                $driver->formatted_birth_date = \Carbon\Carbon::parse($driver->date_of_birth)->format('d.m.Y');
+            }
+            
+            return view('driver.profile', ['driver' => $driver]);
+        } catch (\Exception $e) {
+            // Логируем ошибку
+            \Illuminate\Support\Facades\Log::error('Ошибка при загрузке профиля: ' . $e->getMessage());
+            
+            // Возвращаем страницу с ошибкой
+            return view('driver.error', ['error' => $e->getMessage()]);
         }
-        
-        // Форматируем дату правильно, если она есть
-        if ($driver->date_of_birth) {
-            $driver->formatted_birth_date = \Carbon\Carbon::parse($driver->date_of_birth)->format('d.m.Y');
-        }
-        
-        return view('driver.profile', ['driver' => $driver]);
     })->name('driver.profile');
     
     // Маршрут для выхода из системы
@@ -128,8 +161,17 @@ Route::group(['prefix' => 'backend'], function() {
 
     Route::prefix('disp')->group(function() {
         Route::get('/', [DispatcherController::class, 'index'])->name('dispatcher.backend.index');
-        Route::get('/drivers', [DispatcherController::class, 'index'])->name('dispatcher.backend.drivers');
+        Route::get('/index', [DispatcherController::class, 'index'])->name('dispatcher.backend.index.explicit');
+        Route::get('/drivers', [DispatcherController::class, 'driversPage'])->name('dispatcher.backend.drivers');
         Route::get('/drivers/list', [DispatcherController::class, 'list'])->name('dispatcher.backend.drivers.list');
+        Route::get('/drivers/json', [DispatcherController::class, 'getDriversJson'])->name('dispatcher.backend.drivers.json');
+        Route::delete('/drivers/{driver}/delete', [DispatcherController::class, 'deleteDriver'])->name('dispatcher.backend.drivers.delete');
+        
+        // Добавляем маршрут для получения тарифов
+        Route::get('/tariffs/json', [DispatcherController::class, 'getTariffsJson'])->name('dispatcher.backend.tariffs.json');
+        
+        // Добавляем маршрут для получения заказов в формате JSON
+        Route::get('/orders/json', [DispatcherController::class, 'getOrdersJson'])->name('dispatcher.backend.orders.json');
 
         // Маршруты для управления заявками водителей
         Route::get('/driver-applications', [DispatcherController::class, 'driverApplications'])->name('dispatcher.backend.driver-applications');
@@ -139,11 +181,17 @@ Route::group(['prefix' => 'backend'], function() {
         Route::get('/analytics', [DispatcherController::class, 'analytics'])->name('dispatcher.backend.analytics');
         
         Route::get('/get_balance', function() {
-            return view('disp.get_balance');
+            $totalBalance = \Illuminate\Support\Facades\Cache::remember('total_balance', 60, function () {
+                return \App\Models\Driver::sum('balance');
+            });
+            return view('disp.get_balance', compact('totalBalance'));
         })->name('dispatcher.backend.get_balance');
-        Route::get('/new_order', function() {
-            return view('disp.new_order');
-        })->name('dispatcher.backend.new_order');
+        
+        // Маршрут для асинхронного получения общего баланса через AJAX
+        Route::get('/get_total_balance', [DispatcherController::class, 'getTotalBalanceApi'])
+            ->name('dispatcher.backend.get_total_balance');
+        
+        Route::get('/new_order', 'App\Http\Controllers\OrderController@create')->name('dispatcher.backend.new_order');
 
         Route::get('/pay_balance', [DispatcherController::class, 'pay_balance'])->name('dispatcher.backend.pay_balance');
         Route::post('/process_balance_payment', [DispatcherController::class, 'process_balance_payment'])->name('dispatcher.backend.process_balance_payment');
@@ -184,6 +232,22 @@ Route::group(['prefix' => 'backend'], function() {
         Route::get('/chat/{chatId}/messages', [App\Http\Controllers\DispatcherController::class, 'getChatMessages']);
         Route::post('/chat/{chatId}/send', [App\Http\Controllers\DispatcherController::class, 'sendChatMessage']);
         Route::post('/chat/{chatId}/mark-read', [App\Http\Controllers\DispatcherController::class, 'markChatAsRead']);
+
+        // Добавляем маршрут для карты
+        Route::get('/maps', function() {
+            $totalBalance = \Illuminate\Support\Facades\Cache::remember('total_balance', 60, function () {
+                return \App\Models\Driver::sum('balance');
+            });
+            return view('disp.maps', compact('totalBalance'));
+        })->name('dispatcher.backend.maps');
+
+        // Маршруты для системы уведомлений
+        Route::prefix('api/notifications')->group(function () {
+            Route::get('/unread', [App\Http\Controllers\NotificationController::class, 'getUnread']);
+            Route::get('/all', [App\Http\Controllers\NotificationController::class, 'getAll']);
+            Route::post('/{id}/read', [App\Http\Controllers\NotificationController::class, 'markAsRead']);
+            Route::post('/mark-all-read', [App\Http\Controllers\NotificationController::class, 'markAllAsRead']);
+        });
     });
 });
 

@@ -12,7 +12,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('drivers', function (Blueprint $table) {
-            $table->decimal('balance', 10, 2)->default(0);
+            // Добавляем поле баланса только если оно не существует
+            if (!Schema::hasColumn('drivers', 'balance')) {
+                $table->decimal('balance', 10, 2)->default(0);
+            }
         });
     }
 
@@ -22,7 +25,10 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('drivers', function (Blueprint $table) {
-            $table->dropColumn('balance');
+            // Удаляем поле баланса только если оно существует
+            if (Schema::hasColumn('drivers', 'balance')) {
+                $table->dropColumn('balance');
+            }
         });
     }
 };

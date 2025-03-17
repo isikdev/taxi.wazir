@@ -6,30 +6,50 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    /**
+     * Run the migrations.
+     */
     public function up()
     {
         Schema::table('drivers', function (Blueprint $table) {
-            // Добавляем новые поля
-            $table->string('vin')->nullable()->after('license_plate');
-            $table->string('body_number')->nullable()->after('vin');
-            $table->string('sts')->nullable()->after('body_number');
-            $table->string('callsign')->nullable()->after('sts');
+            // Добавляем дополнительные поля информации о машине только если они не существуют
             
-            // Если нужно, можно добавить transmission, boosters, child_seat и т.д.
-            // $table->string('transmission')->nullable()->after('car_year');
-            // $table->string('boosters')->nullable()->after('transmission');
-            // $table->string('child_seat')->nullable()->after('boosters');
-            // $table->string('parking_car')->nullable()->after('child_seat');
-            // $table->string('tariff_extra')->nullable()->after('tariff');
-            // и т.д.
+            if (!Schema::hasColumn('drivers', 'vin')) {
+                $table->string('vin')->nullable()->after('license_plate');
+            }
+            
+            if (!Schema::hasColumn('drivers', 'license_number')) {
+                $table->string('license_number')->nullable()->after('vin');
+            }
+            
+            if (!Schema::hasColumn('drivers', 'vehicle_registration')) {
+                $table->string('vehicle_registration')->nullable()->after('license_number');
+            }
+            
+            if (!Schema::hasColumn('drivers', 'insurance_number')) {
+                $table->string('insurance_number')->nullable()->after('vehicle_registration');
+            }
+            
+            if (!Schema::hasColumn('drivers', 'insurance_expiry_date')) {
+                $table->date('insurance_expiry_date')->nullable()->after('insurance_number');
+            }
         });
     }
 
+    /**
+     * Reverse the migrations.
+     */
     public function down()
     {
         Schema::table('drivers', function (Blueprint $table) {
-            $table->dropColumn(['vin', 'body_number', 'sts', 'callsign']);
-            // И любые другие поля, которые вы добавляли
+            // Удаляем поля, если они существуют
+            $columns = ['vin', 'license_number', 'vehicle_registration', 'insurance_number', 'insurance_expiry_date'];
+            
+            foreach ($columns as $column) {
+                if (Schema::hasColumn('drivers', $column)) {
+                    $table->dropColumn($column);
+                }
+            }
         });
     }
 };

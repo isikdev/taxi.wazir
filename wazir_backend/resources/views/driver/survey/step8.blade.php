@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Заполнение анкеты Wazir.kg</title>
     <link rel="stylesheet" href="{{ asset('assets/css/driver/main.css') }}">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -174,6 +175,51 @@
                     <h1 class="title-left">
                         Загрузите документы
                     </h1>
+
+                    @if($errors->any())
+                    <div
+                        style="background-color: #ffecec; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #f5c6cb;">
+                        <strong style="color: #721c24; display: block; margin-bottom: 5px;">Ошибка при
+                            загрузке:</strong>
+                        <ul style="margin: 0; padding-left: 20px; color: #721c24;">
+                            @foreach($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                    @endif
+
+                    @if(session('error'))
+                    <div
+                        style="background-color: #ffecec; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #f5c6cb;">
+                        <strong style="color: #721c24;">Ошибка:</strong> {{ session('error') }}
+                    </div>
+                    @endif
+
+                    <div style="background-color: #e7f7f0; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <p style="margin: 0; font-size: 14px; color: #333;">
+                            Вы можете загружать изображения до 50 МБ каждое. Если у вас возникают проблемы с загрузкой,
+                            рекомендуем:
+                            <br>1. Использовать WiFi вместо мобильного интернета
+                            <br>2. Не закрывать страницу во время загрузки
+                            <br>3. При необходимости воспользоваться приложением для сжатия фотографий
+                        </p>
+                    </div>
+
+                    <div style="background-color: #e7f7f0; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <p style="margin: 0; font-size: 14px; color: #333;">
+                            <strong>Требования к фотографиям:</strong>
+                            <br>• Поддерживаемые форматы: JPG, JPEG, PNG, HEIC, HEIF
+                            <br>• Максимальный размер: 100 МБ на каждое изображение
+                            <br>• Изображения должны быть четкими, хорошо освещенными и без искажений
+                        </p>
+                        <p style="margin-top: 10px; font-size: 14px; color: #333;">
+                            <strong>Если возникают проблемы с загрузкой:</strong>
+                            <br>1. Используйте WiFi вместо мобильного интернета
+                            <br>2. Не закрывайте страницу во время загрузки
+                            <br>3. При необходимости воспользуйтесь приложением для сжатия фотографий
+                        </p>
+                    </div>
 
                     <form action="{{ route('driver.survey.processStep8') }}" method="POST" enctype="multipart/form-data"
                         id="documentForm">
@@ -506,95 +552,202 @@
         // Сбрасываем все инпуты при загрузке страницы
         $('.document-upload').val('');
 
-        // Проверяем, правильно ли подключен наш скрипт
-        if (typeof checkSubmitButton === 'function') {
-            console.log('Функция checkSubmitButton успешно загружена');
-        } else {
-            console.error('Функция checkSubmitButton не найдена! Проверьте подключение скрипта upload-fix.js');
-
-            // Определяем функцию на случай, если скрипт не загрузился
-            window.checkSubmitButton = function() {
-                let allUploaded = true;
-                $('.document-upload').each(function() {
-                    if (!this.files || !this.files[0]) {
-                        allUploaded = false;
-                        return false; // прерываем цикл
-                    }
-                });
-
-                if (allUploaded) {
-                    $('#submitBtn').prop('disabled', false).removeClass('main__btn').addClass(
-                        'main__btn-active');
-                } else {
-                    $('#submitBtn').prop('disabled', true).removeClass('main__btn-active').addClass(
-                        'main__btn');
+        // Определяем функцию проверки кнопки отправки
+        window.checkSubmitButton = function() {
+            let allUploaded = true;
+            $('.document-upload').each(function() {
+                if (!this.files || !this.files[0]) {
+                    allUploaded = false;
+                    return false; // прерываем цикл
                 }
-            }
-        }
+            });
 
-        // Переопределяем обработчик выбора файла для изменения класса кнопки
+            if (allUploaded) {
+                $('#submitBtn').prop('disabled', false).removeClass('main__btn').addClass(
+                    'main__btn-active');
+            } else {
+                $('#submitBtn').prop('disabled', true).removeClass('main__btn-active').addClass(
+                    'main__btn');
+            }
+        };
+
+        // Более реалистичная обработка загрузки файлов
         $('.document-upload').on('change', function() {
             const inputId = $(this).attr('id');
             const file = this.files[0];
 
-            if (file) {
-                // Показываем предпросмотр
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    $(`#${inputId}Preview`).show().find('img').attr('src', e.target.result);
-                };
-                reader.readAsDataURL(file);
+            if (!file) return;
 
-                // Эмуляция загрузки с прогресс-баром
-                const progressContainer = $(`#${inputId}Progress`);
-                progressContainer.show();
-                const progressFill = progressContainer.find('.progress-fill');
-                const percentText = progressContainer.find('.status-percent');
+            // Проверяем размер файла
+            const fileSize = file.size / (1024 * 1024); // размер в МБ
+            console.log(`Файл ${file.name} выбран, размер: ${fileSize.toFixed(2)} МБ`);
 
-                let percent = 0;
-                const interval = setInterval(function() {
-                    percent += 5;
-                    progressFill.css('width', percent + '%');
-                    percentText.text(percent + '%');
-
-                    if (percent >= 100) {
-                        clearInterval(interval);
-                        progressContainer.find('.status-text').text('Загружено');
-
-                        // Проверяем, все ли файлы загружены для активации кнопки
-                        let allComplete = true;
-                        $('.progress-container').each(function() {
-                            // Если какой-то прогресс-бар не показан или не на 100%, значит не все загружено
-                            if (!$(this).is(':visible') || $(this).find(
-                                    '.progress-fill').width() < $(this).find(
-                                    '.progress-bar').width()) {
-                                allComplete = false;
-                                return false;
-                            }
-                        });
-
-                        // Если все файлы загружены, активируем кнопку и меняем ее класс
-                        if (allComplete) {
-                            $('#submitBtn').prop('disabled', false).removeClass('main__btn')
-                                .addClass('main__btn-active');
-                        }
-                    }
-                }, 100);
+            // Если файл слишком большой, предупреждаем, но позволяем продолжить
+            if (fileSize > 50) {
+                alert(
+                    `Внимание! Файл очень большой (${fileSize.toFixed(2)} МБ). Загрузка может занять много времени. Рекомендуем сжать файл перед загрузкой.`
+                );
             }
+
+            // Показываем контейнер прогресса
+            const progressContainer = $(`#${inputId}Progress`);
+            progressContainer.show();
+            const progressFill = progressContainer.find('.progress-fill');
+            const percentText = progressContainer.find('.status-percent');
+            const statusText = progressContainer.find('.status-text');
+
+            statusText.text('Подготовка...');
+
+            // Создаем предпросмотр изображения
+            const reader = new FileReader();
+
+            // Отображаем прогресс загрузки файла в FileReader
+            reader.onprogress = function(e) {
+                if (e.lengthComputable) {
+                    let percentLoaded = Math.round((e.loaded / e.total) * 100);
+                    progressFill.css('width', percentLoaded + '%');
+                    percentText.text(percentLoaded + '%');
+
+                    if (percentLoaded < 100) {
+                        statusText.text('Чтение файла...');
+                    }
+                }
+            };
+
+            reader.onload = function(e) {
+                // Отображаем предпросмотр
+                $(`#${inputId}Preview`).show().find('img').attr('src', e.target.result);
+
+                // Симулируем процесс обработки изображения
+                statusText.text('Обработка изображения...');
+
+                // Задержка зависит от размера файла - чем больше файл, тем дольше "обработка"
+                const processingTime = Math.min(100, fileSize * 10); // Максимум 100мс на 1MB
+
+                setTimeout(function() {
+                    statusText.text('Загружено');
+                    progressFill.css('width', '100%');
+                    percentText.text('100%');
+
+                    // Проверка готовности формы
+                    checkSubmitButton();
+                }, processingTime);
+            };
+
+            reader.readAsDataURL(file);
         });
 
-        // Обработка удаления изображения
+        // Обработка удаления изображения (оптимизированная)
         $('.remove-image').on('click', function() {
             const targetId = $(this).data('target');
-            $(`#${targetId}`).val('');
-            $(`#${targetId}Preview`).hide();
-            $(`#${targetId}Progress`).hide().find('.progress-fill').css('width', '0%');
-            $(`#${targetId}Progress .status-text`).text('Загрузка...');
-            $(`#${targetId}Progress .status-percent`).text('0%');
+            const input = $(`#${targetId}`);
 
-            // После удаления изображения возвращаем кнопке исходное состояние
-            $('#submitBtn').prop('disabled', true).removeClass('main__btn-active').addClass(
-                'main__btn');
+            // Очищаем инпут и сбрасываем все связанные элементы
+            input.val('');
+            $(`#${targetId}Preview`).hide();
+            $(`#${targetId}Progress`).hide()
+                .find('.progress-fill').css('width', '0%')
+                .end().find('.status-text').text('Загрузка...')
+                .end().find('.status-percent').text('0%');
+
+            // Обновляем состояние кнопки
+            checkSubmitButton();
+        });
+
+        // Обработка отправки формы с использованием AJAX
+        $('#documentForm').on('submit', function(e) {
+            e.preventDefault(); // Предотвращаем стандартную отправку формы
+
+            // Отключаем кнопку при отправке и меняем текст
+            $('#submitBtn').prop('disabled', true).text('Отправка документов...');
+
+            // Показываем сообщение о том, что загрузка может занять время
+            let warningEl = $('<div/>', {
+                class: 'upload-warning',
+                style: 'background-color: #fffde7; padding: 15px; border-radius: 8px; margin-top: 20px; text-align: center;',
+                html: '<strong>Загрузка документов началась</strong><br>Не закрывайте страницу до завершения процесса!'
+            }).insertAfter(this);
+
+            // Создаем объект FormData для отправки файлов через AJAX
+            const formData = new FormData(this);
+
+            // Добавляем CSRF токен
+            formData.append('_token', $('meta[name="csrf-token"]').attr('content'));
+
+            // Отправляем запрос
+            $.ajax({
+                url: $(this).attr('action'),
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                xhr: function() {
+                    // Создаем объект XMLHttpRequest с прогрессом загрузки
+                    const xhr = new window.XMLHttpRequest();
+
+                    // Добавляем обработчик прогресса загрузки
+                    xhr.upload.addEventListener('progress', function(e) {
+                        if (e.lengthComputable) {
+                            const percent = Math.round((e.loaded / e.total) * 100);
+
+                            // Обновляем текст в предупреждении о загрузке
+                            warningEl.html(
+                                `<strong>Загрузка документов: ${percent}%</strong><br>Не закрывайте страницу до завершения процесса!`
+                            );
+                        }
+                    }, false);
+
+                    return xhr;
+                },
+                success: function(response) {
+                    console.log('Загрузка успешно завершена');
+
+                    // Показываем сообщение об успешной загрузке
+                    warningEl.html(
+                            '<strong>Загрузка успешно завершена!</strong><br>Перенаправляем на следующий шаг...'
+                        )
+                        .css('background-color', '#e7f7f0');
+
+                    // Перенаправляем на следующую страницу
+                    setTimeout(function() {
+                        window.location.href =
+                            "{{ route('driver.survey.complete') }}";
+                    }, 1500);
+                },
+                error: function(xhr, status, error) {
+                    console.error('Ошибка при загрузке:', error);
+
+                    // Получаем текст ошибки
+                    let errorMessage = 'Произошла ошибка при загрузке файлов.';
+
+                    try {
+                        const response = JSON.parse(xhr.responseText);
+                        if (response.message) {
+                            errorMessage = response.message;
+                        }
+
+                        // Если есть ошибки валидации
+                        if (response.errors) {
+                            errorMessage += '<ul>';
+                            for (const field in response.errors) {
+                                response.errors[field].forEach(function(error) {
+                                    errorMessage += `<li>${error}</li>`;
+                                });
+                            }
+                            errorMessage += '</ul>';
+                        }
+                    } catch (e) {
+                        console.error('Не удалось разобрать ответ от сервера:', e);
+                    }
+
+                    // Показываем сообщение об ошибке
+                    warningEl.html(`<strong>Ошибка!</strong><br>${errorMessage}`)
+                        .css('background-color', '#ffecec');
+
+                    // Включаем кнопку обратно
+                    $('#submitBtn').prop('disabled', false).text('Повторить отправку');
+                }
+            });
         });
     });
     </script>

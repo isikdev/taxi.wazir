@@ -7,21 +7,24 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up()
     {
-        Schema::create('drivers', function (Blueprint $table) {
-            $table->id();
-            $table->string('full_name');
-            $table->string('phone', 50)->nullable();
-            $table->string('city', 100)->nullable();
-            $table->string('license_number', 100);
-            $table->date('license_issue_date')->nullable();
-            $table->date('license_expiry_date')->nullable();
-            $table->timestamps();
-        });
+        // Проверяем, существует ли таблица drivers
+        if (Schema::hasTable('drivers')) {
+            // Проверяем, есть ли уже колонка city
+            if (!Schema::hasColumn('drivers', 'city')) {
+                Schema::table('drivers', function (Blueprint $table) {
+                    $table->string('city', 100)->nullable()->after('phone');
+                });
+            }
+        }
     }
 
     public function down()
     {
-        Schema::dropIfExists('drivers');
+        // Удаляем колонку city, если она есть
+        if (Schema::hasTable('drivers') && Schema::hasColumn('drivers', 'city')) {
+            Schema::table('drivers', function (Blueprint $table) {
+                $table->dropColumn('city');
+            });
+        }
     }
 };
-

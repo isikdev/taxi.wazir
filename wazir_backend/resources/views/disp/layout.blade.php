@@ -7,8 +7,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Ош Титан Парк')</title>
-    <link rel="shortcut icon" href="{{ asset('favicon.ico') }}" type="image/x-icon">
+    <link rel="icon" href="{{ asset('assets/img/favicon.ico') }}" type="image/x-icon">
     <link rel="stylesheet" href="{{ asset('assets/css/disp/main.css') }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <link rel="stylesheet" href="{{ asset('assets/css/disp/notifications.css') }}">
     @stack('styles')
 </head>
 
@@ -40,6 +42,7 @@
                         <li><a href="{{ route('dispatcher.backend.analytics') }}">Статистика</a></li>
                         <li><a href="{{ route('dispatcher.backend.get_balance') }}">Запрос на баланс</a></li>
                         <li><a href="{{ route('dispatcher.backend.new_order') }}">Новый заказ</a></li>
+                        <li><a href="{{ route('dispatcher.backend.maps') }}">Карта</a></li>
                     </ul>
                 </nav>
             </div>
@@ -105,19 +108,24 @@
                 </div>
                 <div class="navbar__links">
                     <div class="navbar__links-content">
-                        <a class="navbar__links-content-active" href="#">
+                        <a class="{{ request()->routeIs('dispatcher.backend.index') || request()->routeIs('dispatcher.index') ? 'navbar__links-content-active' : '' }}"
+                            href="{{ route('dispatcher.backend.index') }}">
                             <img src="{{ asset('assets/img/disp/ico/disp.png') }}" alt="disp">
                         </a>
-                        <a href="#">
-                            <img src="{{ asset('assets/img/disp/ico/maps.png') }}" alt="maps">
-                        </a>
-                        <a href="{{ route('dispatcher.backend.drivers') }}">
+                        <a class="{{ request()->routeIs('dispatcher.backend.drivers') ? 'navbar__links-content-active' : '' }}"
+                            href="{{ route('dispatcher.backend.drivers') }}">
                             <img src="{{ asset('assets/img/disp/ico/user.png') }}" alt="user">
                         </a>
-                        <a href="{{ route('dispatcher.backend.cars') }}">
+                        <a class="{{ request()->routeIs('dispatcher.backend.cars') ? 'navbar__links-content-active' : '' }}"
+                            href="{{ route('dispatcher.backend.cars') }}">
                             <img src="{{ asset('assets/img/disp/ico/car.png') }}" alt="car">
                         </a>
-                        <a href="{{ route('dispatcher.backend.analytics') }}">
+                        <a class="{{ request()->routeIs('dispatcher.backend.maps') ? 'navbar__links-content-active' : '' }}"
+                            href="{{ route('dispatcher.backend.maps') }}">
+                            <img src="{{ asset('assets/img/disp/ico/earth.png') }}" alt="map">
+                        </a>
+                        <a class="{{ request()->routeIs('dispatcher.backend.analytics') ? 'navbar__links-content-active' : '' }}"
+                            href="{{ route('dispatcher.backend.analytics') }}">
                             <img src="{{ asset('assets/img/disp/ico/analytics.png') }}" alt="analytics">
                         </a>
                     </div>
@@ -162,9 +170,21 @@
                     </div>
                     <div class="main__header-search-profile">
                         <div class="main__header-search-profile-item">
-                            <a href="#">
-                                <img src="{{ asset('assets/img/disp/ico/notif.png') }}" alt="notif">
-                            </a>
+                            <div class="notifications-container">
+                                <a href="#" class="notifications-icon" id="notifications-icon">
+                                    <img src="{{ asset('assets/img/disp/ico/notif.png') }}" alt="notif">
+                                    <span class="notifications-badge" id="notifications-badge">0</span>
+                                </a>
+                                <div class="notifications-dropdown" id="notifications-dropdown">
+                                    <div class="notifications-header">
+                                        <h3 class="notifications-title">Уведомления</h3>
+                                        <button class="mark-all-read" id="mark-all-read">Отметить все как прочитанные</button>
+                                    </div>
+                                    <div id="notifications-list">
+                                        <div class="notification-empty">У вас нет новых уведомлений</div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         <div class="main__header-search-profile-item">
                             <a href="#">
@@ -178,14 +198,16 @@
                 <div class="main__subheader-filter">
                     <a href="#"><img src="{{ asset('assets/img/disp/ico/burger.png') }}" alt="burger"></a>
                     <a href="#"><img src="{{ asset('assets/img/disp/ico/chart.png') }}" alt="chart"></a>
-                    <a href="#"><img src="{{ asset('assets/img/disp/ico/earth.png') }}" alt="earth"></a>
                 </div>
                 <div class="main__subheader-filing">
                     <form action="#">
                         <select name="filing-date">
-                            <option value="Дата подачи" disabled selected>Дата подачи</option>
-                            <option value="08.12.2024">08.12.2024</option>
-                            <option value="09.01.2025">09.01.2025</option>
+                            <option value="" disabled selected>Дата подачи</option>
+                            <option value="today">Сегодня</option>
+                            <option value="yesterday">Вчера</option>
+                            <option value="week">Текущая неделя</option>
+                            <option value="month">Текущий месяц</option>
+                            <option value="custom">Указать период</option>
                         </select>
                     </form>
                 </div>
@@ -204,7 +226,7 @@
                 </div>
                 <div class="main__subheader-balance">
                     <img src="{{ asset('assets/img/disp/ico/balance.png') }}" alt="balance">
-                    <p>Баланс: 10,000</p>
+                    <p>Баланс: {{ number_format($totalBalance ?? 0, 0, '.', ',') }}</p>
                 </div>
             </div>
 
@@ -214,6 +236,42 @@
     </div>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="{{ asset('assets/js/disp/script.js') }}"></script>
+    <script src="{{ asset('assets/js/disp/filters.js') }}"></script>
+    <script src="{{ asset('assets/js/disp/status-filters.js') }}"></script>
+    <script src="{{ asset('assets/js/disp/live-balance.js') }}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
+    <script src="{{ asset('assets/js/disp/notifications.js') }}"></script>
+    <script src="{{ asset('assets/js/script.js') }}"></script>
+    <script>
+    // Предварительное кэширование баланса на клиенте для мгновенной загрузки
+    document.addEventListener('DOMContentLoaded', function() {
+        let cachedBalance = localStorage.getItem('total_balance');
+        let balanceElement = document.querySelector('.main__subheader-balance p');
+
+        // Используем кэшированное значение, если оно есть
+        if (cachedBalance && balanceElement) {
+            balanceElement.textContent = 'Баланс: ' + new Intl.NumberFormat('ru-RU').format(parseFloat(
+                cachedBalance));
+        }
+
+        // Асинхронно обновляем кэш баланса через 1 секунду после загрузки страницы
+        setTimeout(function() {
+            fetch('{{ route("dispatcher.backend.get_total_balance") }}')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.total_balance) {
+                        localStorage.setItem('total_balance', data.total_balance);
+                        if (balanceElement) {
+                            balanceElement.textContent = 'Баланс: ' + new Intl.NumberFormat('ru-RU')
+                                .format(data.total_balance);
+                        }
+                    }
+                })
+                .catch(error => console.error('Ошибка при загрузке баланса:', error));
+        }, 1000);
+    });
+    </script>
     @stack('scripts')
 </body>
 

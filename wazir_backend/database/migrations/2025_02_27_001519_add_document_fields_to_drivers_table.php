@@ -12,30 +12,50 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('drivers', function (Blueprint $table) {
-            // Добавляем поля для хранения путей к фотографиям паспорта и водительского удостоверения,
-            // если они еще не существуют
-            if (!Schema::hasColumn('drivers', 'passport_front')) {
-                $table->string('passport_front')->nullable();
+            // Добавляем поля только если они не существуют
+            if (!Schema::hasColumn('drivers', 'driver_license_front')) {
+                $table->string('driver_license_front')->nullable();
             }
-            if (!Schema::hasColumn('drivers', 'passport_back')) {
-                $table->string('passport_back')->nullable();
-            }
-            if (!Schema::hasColumn('drivers', 'license_front')) {
-                $table->string('license_front')->nullable();
-            }
-            if (!Schema::hasColumn('drivers', 'license_back')) {
-                $table->string('license_back')->nullable();
-            }
-
-            // Добавляем поля для хранения путей к фотографиям автомобиля
-            $table->string('car_front')->nullable();
-            $table->string('car_back')->nullable();
-            $table->string('car_left')->nullable();
-            $table->string('car_right')->nullable();
             
-            // Добавляем поля для хранения путей к фотографиям салона
-            $table->string('interior_front')->nullable();
-            $table->string('interior_back')->nullable();
+            if (!Schema::hasColumn('drivers', 'driver_license_back')) {
+                $table->string('driver_license_back')->nullable();
+            }
+            
+            if (!Schema::hasColumn('drivers', 'driver_passport_front')) {
+                $table->string('driver_passport_front')->nullable();
+            }
+            
+            if (!Schema::hasColumn('drivers', 'driver_passport_back')) {
+                $table->string('driver_passport_back')->nullable();
+            }
+            
+            if (!Schema::hasColumn('drivers', 'car_front')) {
+                $table->string('car_front')->nullable();
+            }
+            
+            if (!Schema::hasColumn('drivers', 'car_back')) {
+                $table->string('car_back')->nullable();
+            }
+            
+            if (!Schema::hasColumn('drivers', 'car_left')) {
+                $table->string('car_left')->nullable();
+            }
+            
+            if (!Schema::hasColumn('drivers', 'car_right')) {
+                $table->string('car_right')->nullable();
+            }
+            
+            if (!Schema::hasColumn('drivers', 'car_inside')) {
+                $table->string('car_inside')->nullable();
+            }
+            
+            if (!Schema::hasColumn('drivers', 'tech_passport_front')) {
+                $table->string('tech_passport_front')->nullable();
+            }
+            
+            if (!Schema::hasColumn('drivers', 'tech_passport_back')) {
+                $table->string('tech_passport_back')->nullable();
+            }
         });
     }
 
@@ -45,17 +65,26 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('drivers', function (Blueprint $table) {
-            // Удаляем только добавленные нами поля для фотографий автомобиля и салона
-            $table->dropColumn([
+            // Удаляем поля только если они существуют
+            $columns = [
+                'driver_license_front',
+                'driver_license_back',
+                'driver_passport_front',
+                'driver_passport_back',
                 'car_front',
                 'car_back',
                 'car_left',
                 'car_right',
-                'interior_front',
-                'interior_back'
-            ]);
+                'car_inside',
+                'tech_passport_front',
+                'tech_passport_back'
+            ];
             
-            // Не удаляем поля для паспорта и прав, так как они могли существовать ранее
+            foreach ($columns as $column) {
+                if (Schema::hasColumn('drivers', $column)) {
+                    $table->dropColumn($column);
+                }
+            }
         });
     }
 };

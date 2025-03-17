@@ -127,7 +127,9 @@ class DriverAuthController extends Controller
         $driver->license_number = '';
         $driver->license_issue_date = null;
         $driver->license_expiry_date = null;
-        // Можно также не передавать поля city, если они тоже не обязательны
+        // Явно устанавливаем статус как pending и флаг is_confirmed в false
+        $driver->survey_status = 'pending';
+        $driver->is_confirmed = false;
         
         $driver->save();
         

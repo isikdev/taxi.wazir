@@ -1,4 +1,9 @@
 <!DOCTYPE html>
+@php
+use Illuminate\Support\Facades\Schema;
+// Проверяем существование таблицы driver_vehicles
+$driverVehicleTableExists = Schema::hasTable('driver_vehicles');
+@endphp
 <html lang="ru">
 
 <head>

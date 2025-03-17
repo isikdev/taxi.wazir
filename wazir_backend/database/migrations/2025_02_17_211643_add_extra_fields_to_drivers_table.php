@@ -6,58 +6,74 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    /**
+     * Run the migrations.
+     */
     public function up()
     {
         Schema::table('drivers', function (Blueprint $table) {
-            $table->string('personal_number', 17)->nullable()->after('license_expiry_date');
-
-            $table->date('date_of_birth')->nullable()->after('personal_number');
-
-            $table->string('passport_front')->nullable()->after('date_of_birth');
-            $table->string('passport_back')->nullable()->after('passport_front');
-
-            $table->string('license_front')->nullable()->after('passport_back');
-            $table->string('license_back')->nullable()->after('license_front');
-
-            $table->string('car_brand')->nullable()->after('license_back');
-            $table->string('car_model')->nullable()->after('car_brand');
-            $table->string('car_color')->nullable()->after('car_model');
-            $table->year('car_year')->nullable()->after('car_color');
+            // Документы водителя
+            if (!Schema::hasColumn('drivers', 'license_number')) {
+                $table->string('license_number', 20)->nullable()->after('phone');
+            }
             
-            $table->string('service_type')->nullable()->after('car_year');
-            $table->string('category')->nullable()->after('service_type');
-            $table->string('tariff')->nullable()->after('category');
+            if (!Schema::hasColumn('drivers', 'license_issue_date')) {
+                $table->date('license_issue_date')->nullable()->after('license_number');
+            }
             
-            $table->string('license_plate')->nullable()->after('tariff');
+            if (!Schema::hasColumn('drivers', 'license_expiry_date')) {
+                $table->date('license_expiry_date')->nullable()->after('license_issue_date');
+            }
             
-            $table->boolean('has_nakleyka')->default(false)->after('license_plate');
-            $table->boolean('has_lightbox')->default(false)->after('has_nakleyka');
-            $table->boolean('has_child_seat')->default(false)->after('has_lightbox');
+            if (!Schema::hasColumn('drivers', 'personal_number')) {
+                $table->string('personal_number', 17)->nullable()->after('license_expiry_date');
+            }
+            
+            // Личные данные водителя
+            if (!Schema::hasColumn('drivers', 'birthdate')) {
+                $table->date('birthdate')->nullable()->after('personal_number');
+            }
+            
+            if (!Schema::hasColumn('drivers', 'gender')) {
+                $table->string('gender', 10)->nullable()->after('birthdate');
+            }
+            
+            if (!Schema::hasColumn('drivers', 'language')) {
+                $table->string('language', 30)->nullable()->after('gender');
+            }
+            
+            // Адрес
+            if (!Schema::hasColumn('drivers', 'country')) {
+                $table->string('country', 30)->nullable()->after('language');
+            }
+            
+            if (!Schema::hasColumn('drivers', 'city')) {
+                $table->string('city', 30)->nullable()->after('country');
+            }
+            
+            if (!Schema::hasColumn('drivers', 'address')) {
+                $table->string('address')->nullable()->after('city');
+            }
         });
     }
 
+    /**
+     * Reverse the migrations.
+     */
     public function down()
     {
         Schema::table('drivers', function (Blueprint $table) {
-            $table->dropColumn([
-                'personal_number',
-                'date_of_birth',
-                'passport_front',
-                'passport_back',
-                'license_front',
-                'license_back',
-                'car_brand',
-                'car_model',
-                'car_color',
-                'car_year',
-                'service_type',
-                'category',
-                'tariff',
-                'license_plate',
-                'has_nakleyka',
-                'has_lightbox',
-                'has_child_seat',
-            ]);
+            // Удаляем поля
+            $columns = [
+                'license_number', 'license_issue_date', 'license_expiry_date', 'personal_number',
+                'birthdate', 'gender', 'language', 'country', 'city', 'address'
+            ];
+            
+            foreach ($columns as $column) {
+                if (Schema::hasColumn('drivers', $column)) {
+                    $table->dropColumn($column);
+                }
+            }
         });
     }
 };

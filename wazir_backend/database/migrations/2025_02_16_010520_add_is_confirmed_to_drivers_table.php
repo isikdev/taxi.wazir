@@ -6,19 +6,29 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    public function up()
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
     {
         Schema::table('drivers', function (Blueprint $table) {
-            $table->boolean('is_confirmed')->default(false)->after('phone');
+            // Проверяем существует ли уже колонка is_confirmed
+            if (!Schema::hasColumn('drivers', 'is_confirmed')) {
+                $table->boolean('is_confirmed')->default(false)->after('phone');
+            }
         });
     }
-    
-    public function down()
-    {
-        Schema::table('drivers', function (Blueprint $table) {
-            $table->dropColumn('is_confirmed');
-        });
-    }
-    
 
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::table('drivers', function (Blueprint $table) {
+            // Проверяем существует ли колонка is_confirmed перед удалением
+            if (Schema::hasColumn('drivers', 'is_confirmed')) {
+                $table->dropColumn('is_confirmed');
+            }
+        });
+    }
 };

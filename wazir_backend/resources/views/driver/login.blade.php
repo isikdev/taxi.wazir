@@ -128,7 +128,7 @@
                 </form>
                 
                 <div class="login-footer">
-                    <p>Еще не зарегистрированы? <a href="{{ route('driver.survey.start') }}">Зарегистрироваться</a></p>
+                    <p>Еще не зарегистрированы? <a href="{{ route('driver.auth.step1') }}">Зарегистрироваться</a></p>
                 </div>
             </div>
         </div>

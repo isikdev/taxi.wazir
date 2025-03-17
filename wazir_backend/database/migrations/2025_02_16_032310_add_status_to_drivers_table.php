@@ -12,7 +12,10 @@ return new class extends Migration
     public function up()
     {
         Schema::table('drivers', function (Blueprint $table) {
-            $table->string('status')->nullable()->default('offline');
+            // Проверяем существует ли уже колонка status
+            if (!Schema::hasColumn('drivers', 'status')) {
+                $table->string('status')->nullable()->default('offline');
+            }
         });
     }
 
@@ -22,7 +25,10 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('drivers', function (Blueprint $table) {
-            //
+            // Проверяем существует ли колонка status перед удалением
+            if (Schema::hasColumn('drivers', 'status')) {
+                $table->dropColumn('status');
+            }
         });
     }
 };

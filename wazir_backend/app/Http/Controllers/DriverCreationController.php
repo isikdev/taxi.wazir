@@ -4,18 +4,48 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Driver;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
+use App\Services\DriverImageService;
 
 class DriverCreationController extends Controller
 {
+    /**
+     * Сервис для работы с изображениями водителей
+     */
+    protected $imageService;
+
+    /**
+     * Конструктор класса
+     */
+    public function __construct(DriverImageService $imageService)
+    {
+        $this->imageService = $imageService;
+    }
+
+    /**
+     * Получает общий баланс всех водителей
+     * 
+     * @return float
+     */
+    private function getTotalBalance()
+    {
+        // Используем кеширование для оптимизации
+        return Cache::remember('total_balance', 60, function () {
+            return Driver::sum('balance');
+        });
+    }
+
     /**
      * Шаг 1: Персональные данные + загрузка ID/ВУ
      */
     public function showStep1()
     {
-        return view('disp.drivers_control_edit');
+        $totalBalance = $this->getTotalBalance();
+        $drivers = Driver::all();
+        return view('disp.drivers_control_edit', compact('totalBalance', 'drivers'));
     }
 
     public function processStep1(Request $request)
@@ -103,6 +133,9 @@ class DriverCreationController extends Controller
         $validated['license_expiry_date'] = Carbon::createFromFormat('d.m.Y', $validated['license_expiry_date'])->format('Y-m-d');
         
         $validated['is_confirmed'] = true;
+        $validated['survey_status'] = 'approved';
+        $validated['approved_at'] = now();
+        
         // Загрузка файлов (если есть)
         if ($request->hasFile('passport_front')) {
             $validated['passport_front'] = $request->file('passport_front')
@@ -135,9 +168,10 @@ class DriverCreationController extends Controller
     {
         $driver = Driver::findOrFail($driverId);
         $carSelects = json_decode(file_get_contents(public_path('js/car_selects.json')), true);
+        $totalBalance = $this->getTotalBalance();
+        $drivers = Driver::all();
 
-        return view('disp.drivers_num_edit', compact('driver', 'carSelects'));
-
+        return view('disp.drivers_num_edit', compact('driver', 'carSelects', 'totalBalance', 'drivers'));
     }
 
     public function processStep2(Request $request, $driverId)
@@ -173,6 +207,12 @@ class DriverCreationController extends Controller
             'has_nakleyka', 'has_lightbox', 'has_child_seat',
         ]);
 
+        // Убедимся, что водитель имеет статус одобренной заявки
+        if (!$driver->survey_status) {
+            $data['survey_status'] = 'approved';
+            $data['approved_at'] = now();
+        }
+
         $driver->update($data);
 
         return redirect()->route('dispatcher.backend.drivers_car_edit', ['driver' => $driver->id]);
@@ -184,7 +224,10 @@ class DriverCreationController extends Controller
     public function showStep3($driverId)
     {
         $driver = Driver::findOrFail($driverId);
-        return view('disp.drivers_car_edit', compact('driver'));
+        $totalBalance = $this->getTotalBalance();
+        $drivers = Driver::all();
+        
+        return view('disp.drivers_car_edit', compact('driver', 'totalBalance', 'drivers'));
     }
 
     public function processStep3(Request $request, $driverId)
@@ -192,43 +235,117 @@ class DriverCreationController extends Controller
         $driver = Driver::findOrFail($driverId);
     
         $request->validate([
-            'car_front'           => 'nullable|file|mimes:jpg,jpeg,png|max:2048',
-            'car_back'            => 'nullable|file|mimes:jpg,jpeg,png|max:2048',
-            'license_photo'       => 'nullable|file|mimes:jpg,jpeg,png|max:2048',
-            'car_right'           => 'nullable|file|mimes:jpg,jpeg,png|max:2048',
-            'car_left'            => 'nullable|file|mimes:jpg,jpeg,png|max:2048',
-            'car_interior_front'  => 'nullable|file|mimes:jpg,jpeg,png|max:2048',
-            'car_interior_back'   => 'nullable|file|mimes:jpg,jpeg,png|max:2048',
+            'car_front'           => 'nullable|file|mimes:jpg,jpeg,png,heic,heif|max:102400',
+            'car_back'            => 'nullable|file|mimes:jpg,jpeg,png,heic,heif|max:102400',
+            'license_photo'       => 'nullable|file|mimes:jpg,jpeg,png,heic,heif|max:102400',
+            'car_right'           => 'nullable|file|mimes:jpg,jpeg,png,heic,heif|max:102400',
+            'car_left'            => 'nullable|file|mimes:jpg,jpeg,png,heic,heif|max:102400',
+            'car_interior_front'  => 'nullable|file|mimes:jpg,jpeg,png,heic,heif|max:102400',
+            'car_interior_back'   => 'nullable|file|mimes:jpg,jpeg,png,heic,heif|max:102400',
         ]);
     
         $data = [];
-    
-        if ($request->hasFile('car_front')) {
-            $data['car_front'] = $request->file('car_front')->store("drivers/{$driver->personal_number}/car", 'public');
+        
+        // Получаем идентификатор водителя или генерируем, если его нет
+        $driverIdentifier = $driver->personal_number;
+        if (empty($driverIdentifier)) {
+            $driverIdentifier = Str::random(17);
+            $driver->personal_number = $driverIdentifier;
+            $driver->save();
         }
-        if ($request->hasFile('car_back')) {
-            $data['car_back'] = $request->file('car_back')->store("drivers/{$driver->personal_number}/car", 'public');
+        
+        // Отладка: Выводим список файлов в запросе
+        $debugInfo = [];
+        $debugInfo['has_files'] = [
+            'car_front' => $request->hasFile('car_front'),
+            'car_back' => $request->hasFile('car_back'),
+            'license_photo' => $request->hasFile('license_photo'),
+            'car_right' => $request->hasFile('car_right'),
+            'car_left' => $request->hasFile('car_left'),
+            'car_interior_front' => $request->hasFile('car_interior_front'),
+            'car_interior_back' => $request->hasFile('car_interior_back')
+        ];
+        
+        // Маппинг полей формы на поля в БД
+        $fileMapping = [
+            'car_front' => 'car_front',
+            'car_back' => 'car_back',
+            'license_photo' => 'license_photo',
+            'car_right' => 'car_right',
+            'car_left' => 'car_left',
+            'car_interior_front' => 'car_interior_front',
+            'car_interior_back' => 'car_interior_back'
+        ];
+        
+        // Собираем все файлы для обработки
+        $files = [];
+        foreach ($fileMapping as $requestField => $dbField) {
+            if ($request->hasFile($requestField)) {
+                $files[$dbField] = $request->file($requestField);
+            }
         }
-        if ($request->hasFile('license_photo')) {
-            $data['license_photo'] = $request->file('license_photo')->store("drivers/{$driver->personal_number}/car", 'public');
+        
+        $debugInfo['files_count'] = count($files);
+        
+        // Обрабатываем все файлы через сервис
+        if (!empty($files)) {
+            $imagePaths = $this->imageService->processImages($files, $driverIdentifier);
+            $debugInfo['image_paths'] = $imagePaths;
+            
+            foreach ($imagePaths as $field => $path) {
+                $data[$field] = $path;
+            }
         }
-        if ($request->hasFile('car_right')) {
-            $data['car_right'] = $request->file('car_right')->store("drivers/{$driver->personal_number}/car", 'public');
+        
+        $debugInfo['data_to_save'] = $data;
+        
+        // Отладка: проверка, что все нужные поля разрешены для заполнения
+        $fillable = $driver->getFillable();
+        $debugInfo['fillable_fields'] = $fillable;
+        $debugInfo['driver_fields'] = array_keys($driver->getAttributes());
+        
+        // Убедимся, что водитель имеет статус одобренной заявки
+        if (!$driver->survey_status) {
+            $data['survey_status'] = 'approved';
+            $data['approved_at'] = now();
         }
-        if ($request->hasFile('car_left')) {
-            $data['car_left'] = $request->file('car_left')->store("drivers/{$driver->personal_number}/car", 'public');
-        }
-        if ($request->hasFile('car_interior_front')) {
-            $data['car_interior_front'] = $request->file('car_interior_front')->store("drivers/{$driver->personal_number}/car", 'public');
-        }
-        if ($request->hasFile('car_interior_back')) {
-            $data['car_interior_back'] = $request->file('car_interior_back')->store("drivers/{$driver->personal_number}/car", 'public');
-        }
-    
+
+        // Сохраняем данные в лог перед попыткой обновления
+        \Log::info('Driver update attempt:', $debugInfo);
+        
         if (!empty($data)) {
-            $driver->update($data);
+            try {
+                // Пробуем прямой подход через установку значений
+                foreach ($data as $field => $value) {
+                    $driver->{$field} = $value;
+                }
+                $result = $driver->save();
+                
+                \Log::info('Driver direct save result: ' . ($result ? 'success' : 'failed'));
+                
+                if (!$result) {
+                    // Попробуем запасной вариант через update
+                    $updateResult = $driver->update($data);
+                    \Log::info('Driver update result: ' . ($updateResult ? 'success' : 'failed'));
+                }
+                
+                // Перезагружаем модель, чтобы проверить, что данные действительно сохранились
+                $driver->refresh();
+                $savedData = [];
+                foreach ($fileMapping as $requestField => $dbField) {
+                    $savedData[$dbField] = $driver->{$dbField};
+                }
+                \Log::info('Driver data after save:', $savedData);
+                
+            } catch (\Exception $e) {
+                \Log::error('Error updating driver: ' . $e->getMessage());
+                \Log::error($e->getTraceAsString());
+                return redirect()->route('dispatcher.backend.drivers_control')
+                    ->with('error', 'Ошибка при сохранении фото: ' . $e->getMessage());
+            }
         }
     
-        return redirect()->route('dispatcher.backend.drivers_control')->with('success', 'Фото успешно сохранены!');
+        return redirect()->route('dispatcher.backend.drivers_control')
+            ->with('success', 'Фото успешно сохранены! ' . json_encode($debugInfo));
     }
 }

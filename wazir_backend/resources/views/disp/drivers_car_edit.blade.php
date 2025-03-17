@@ -170,9 +170,9 @@
     <div class="main__subheader-drivers">
         <div class="main__header-tags main__subheader-drivers-tags">
             <ul>
-                <li>На линии 26 водителей</li>
-                <li><span class="status-span free"></span> 12 свободный</li>
-                <li><span class="status-span busy"></span> 14 занят</li>
+                <li>На линии 0 водителей</li>
+                <li><span class="status-span free"></span> 0 свободный</li>
+                <li><span class="status-span busy"></span> 0 занят</li>
             </ul>
         </div>
         <div class="main__subheader-balance">

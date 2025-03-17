@@ -15,6 +15,17 @@
     gap: 20px;
 }
 
+.main__subheader-add button {
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.main__subheader-add button.active {
+    background-color: #3498db;
+    color: white;
+    border-color: #2980b9;
+}
+
 .small-col {
     max-width: 150px;
     text-align: center;
@@ -62,7 +73,7 @@
     </div>
     <div class="main__subheader-balance">
         <img src="{{ asset('assets/img/disp/ico/balance.png') }}" alt="balance">
-        <p>Баланс: {{ number_format($dispatcherBalance ?? 0, 0, ',', ',') }}</p>
+        <p>Баланс: {{ number_format($totalBalance ?? 0, 0, '.', ',') }}</p>
     </div>
 </div>
 <div class="main__paybalance">
@@ -80,7 +91,6 @@
                     <th class="small-col">Пополнение</th>
                     <th class="small-col">Подтвердить</th>
                     <th class="small-col">Статус</th>
-                    <th>Статус</th>
                 </tr>
             </thead>
 
@@ -149,6 +159,7 @@
                         <form class="main__paybalance-table-td balance-form">
                             <img src="{{ asset('assets/img/disp/ico/balance.png') }}" alt="balance">
                             <input type="text" class="balance-amount" placeholder="150">
+                            <input type="hidden" name="payment_method" value="cash" class="payment-method">
                         </form>
                         @else
                         <span style="color: #aaa;">—</span>
@@ -171,15 +182,6 @@
                         В ожидании подтверждения
                     </td>
 
-                    <td class=" 
-                    @if(!$driver->is_confirmed) disabled-cell @endif">
-                        <form>
-                            <div class="custom-checkbox">
-                                <input type="checkbox" class="custom-input">
-                                <span class="checkmark"></span>
-                            </div>
-                        </form>
-                    </td>
                 </tr>
                 @endforeach
             </tbody>
@@ -187,7 +189,7 @@
         </table>
         <div class="main__table-footer">
             <div class="main__table-driver">
-                <button>Водители: {{ $drivers->count() }}</button>
+                <button>Водители: 0</button>
             </div>
             <div class="main__table-pagination">
                 <div class="main__table-pagination-prev">
@@ -197,12 +199,6 @@
                 </div>
                 <div class="main__table-pagination-active main__table-pagination-item">
                     <button>1</button>
-                </div>
-                <div class="main__table-pagination-item">
-                    <button>2</button>
-                </div>
-                <div class="main__table-pagination-item">
-                    <button>3</button>
                 </div>
                 <div class="main__table-pagination-next">
                     <button>
@@ -225,7 +221,7 @@ $(document).ready(function() {
             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
         }
     });
-    
+
     // Обработка нажатия на кнопку "Подтвердить"
     $('.confirm-payment-btn').click(function() {
         const row = $(this).closest('tr');
@@ -234,13 +230,13 @@ $(document).ready(function() {
         const amount = amountInput.val();
         const statusCell = row.find('.payment-status');
         const balanceCell = row.find('.driver-balance');
-        
+
         // Проверка на пустое поле
         if (!amount || isNaN(amount) || parseFloat(amount) <= 0) {
             showMessage('Пожалуйста, введите корректную сумму пополнения', 'danger');
             return;
         }
-        
+
         // Отправка запроса на пополнение баланса
         $.ajax({
             url: '{{ route("dispatcher.backend.process_balance_payment") }}',
@@ -259,35 +255,73 @@ $(document).ready(function() {
                     balanceCell.text(response.new_balance);
                     amountInput.val('');
                     showMessage('Баланс успешно пополнен', 'success');
-                    
+
+                    // Обновляем общий баланс в шапке
+                    if (response.total_balance) {
+                        $('.main__subheader-balance p').text('Баланс: ' +
+                            new Intl.NumberFormat('ru-RU').format(response
+                                .total_balance));
+                    }
+
                     // Сброс статуса через 3 секунды
                     setTimeout(function() {
                         statusCell.text('В ожидании подтверждения');
                     }, 3000);
                 } else {
                     statusCell.text('Ошибка');
-                    showMessage('Произошла ошибка при пополнении баланса', 'danger');
+                    showMessage(response.message ||
+                        'Произошла ошибка при пополнении баланса', 'danger');
+
+                    // Сброс статуса через 5 секунд
+                    setTimeout(function() {
+                        statusCell.text('В ожидании подтверждения');
+                    }, 5000);
                 }
             },
-            error: function() {
+            error: function(xhr) {
                 statusCell.text('Ошибка');
-                showMessage('Произошла ошибка при пополнении баланса', 'danger');
+
+                let errorMessage = 'Произошла ошибка при пополнении баланса';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMessage = xhr.responseJSON.message;
+                }
+
+                showMessage(errorMessage, 'danger');
+
+                // Сброс статуса через 5 секунд
+                setTimeout(function() {
+                    statusCell.text('В ожидании подтверждения');
+                }, 5000);
+
+                // Запрос обновленного баланса через 2 секунды
+                setTimeout(function() {
+                    $.ajax({
+                        url: '{{ route("dispatcher.backend.drivers") }}',
+                        type: 'GET',
+                        success: function() {
+                            // Обновляем общий баланс, запрашивая его заново
+                            location.reload();
+                        }
+                    });
+                }, 2000);
             }
         });
     });
-    
-    // Функция отображения сообщения
+
+    /**
+     * Отображение сообщения пользователю
+     */
     function showMessage(message, type) {
         const container = $('#messageContainer');
-        container.removeClass('alert-success alert-danger');
-        container.addClass('alert-' + type);
-        container.text(message);
-        container.show();
-        
-        // Скрываем сообщение через 3 секунды
+        container.text(message)
+            .removeClass('alert-success alert-danger')
+            .addClass(`alert-${type}`)
+            .fadeIn();
+
+        // Авто-скрытие сообщения через 5 секунд
         setTimeout(function() {
-            container.hide();
-        }, 3000);
+            container.fadeOut();
+        }, 5000);
     }
 });
 </script>

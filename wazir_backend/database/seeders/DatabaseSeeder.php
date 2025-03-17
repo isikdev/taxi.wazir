@@ -19,5 +19,8 @@ class DatabaseSeeder extends Seeder
             'name' => 'Test User',
             'email' => 'test@example.com',
         ]);
+        
+        // Запускаем сидер для водителей
+        $this->call(DriverSeeder::class);
     }
 }

@@ -9,17 +9,19 @@
     display: none;
 }
 
+.main__subheader-add button span {
+    width: 100%;
+    height: 100%;
+    opacity: .5;
+}
+
 .main__subheader-drivers {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    width: 100%;
     gap: 20px;
 }
 
-.main__subheader-drivers {
-    width: unset;
-}
 
 .invalid {
     color: red;
@@ -28,18 +30,34 @@
 }
 
 .main__subheader-filing select {
-    background-color: #2f2f2f;
+    background-color: #47484c;
     color: #fff;
-    border: 1px solid #444;
-    border-radius: 4px;
-    padding: 5px 10px;
-    width: 180px;
+    padding: 14px 30px;
+    border-radius: 5px;
+    border: none;
+    outline: none;
+    text-align: left;
+    width: 300px;
+    line-height: 1.2;
+    -moz-text-align-last: center;
+    text-align-last: center;
+    -webkit-appearance: none;
+    -moz-appearance: none;
     appearance: none;
+    background-image: url(data:image/svg+xml;charset=UTF-8,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E);
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 10px auto;
 }
 
 .personal-data-form .form-column .form-group input[type="text"] {
-    width: auto;
+    width: 265px;
     text-align: center;
+    font-size: 16px;
+}
+
+.personal-data-form .form-column .form-group {
+    border-bottom: 1px solid #0000005;
 }
 </style>
 @endpush
@@ -71,13 +89,6 @@
     </div>
 
     <div class="main__subheader-drivers">
-        <div class="main__header-tags main__subheader-drivers-tags">
-            <ul>
-                <li>На линии 26 водителей</li>
-                <li><span class="status-span free"></span> 12 свободный</li>
-                <li><span class="status-span busy"></span> 14 занят</li>
-            </ul>
-        </div>
         <div class="main__subheader-balance">
             <img src="{{ asset('assets/img/disp/ico/balance.png') }}" alt="balance">
             <p>Баланс: 10,000</p>

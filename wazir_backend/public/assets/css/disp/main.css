@@ -1363,4 +1363,150 @@ html {
   display: flex;
   flex-direction: column;
   gap: 22px;
+}
+
+/* Стили для уведомлений */
+.notification-count {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background-color: #ff4d4d;
+  color: white;
+  border-radius: 50%;
+  min-width: 18px;
+  height: 18px;
+  font-size: 12px;
+  text-align: center;
+  line-height: 18px;
+  display: none; /* Будет показано только если есть непрочитанные */
+}
+
+.main__header-search-profile-item {
+  position: relative;
+}
+
+.notification-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  width: 320px;
+  background-color: #2e2f33;
+  border: 1px solid #47484c;
+  border-radius: 5px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  z-index: 100;
+  display: none;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.notification-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  border-bottom: 1px solid #47484c;
+}
+
+.notification-header h3 {
+  color: white;
+  margin: 0;
+  font-size: 16px;
+}
+
+.notification-header button {
+  background: none;
+  border: none;
+  color: #4caf50;
+  cursor: pointer;
+  font-size: 12px;
+  transition: color 0.3s;
+}
+
+.notification-header button:hover {
+  color: #2d6a30;
+}
+
+.notification-list {
+  padding: 0;
+}
+
+.notification-item {
+  padding: 10px;
+  border-bottom: 1px solid #47484c;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.notification-item:hover {
+  background-color: #47484c;
+}
+
+.notification-item.unread {
+  background-color: rgba(76, 175, 80, 0.1);
+  position: relative;
+}
+
+.notification-item.unread:before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background-color: #4caf50;
+}
+
+.notification-item h4 {
+  margin: 0 0 5px;
+  color: white;
+  font-size: 14px;
+}
+
+.notification-item p {
+  margin: 0;
+  color: #b0b0b0;
+  font-size: 13px;
+}
+
+.notification-item .time {
+  font-size: 11px;
+  color: #808080;
+  margin-top: 5px;
+  text-align: right;
+}
+
+/* Стили для тостов */
+.toastify {
+  background: #2e2f33;
+  color: white;
+  border-left: 4px solid #4caf50;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border-radius: 5px;
+  padding: 12px 20px;
+  font-family: inherit;
+}
+
+.toastify.success {
+  border-left-color: #4caf50;
+}
+
+.toastify.error,
+.toastify.warning {
+  border-left-color: #ff4d4d;
+}
+
+.toastify.info {
+  border-left-color: #2196f3;
+}
+
+.toastify-close {
+  opacity: 0.7;
+  padding: 0;
+  background: none;
+  transition: opacity 0.3s;
+}
+
+.toastify-close:hover {
+  opacity: 1;
 } /*# sourceMappingURL=main.css.map */

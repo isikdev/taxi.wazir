@@ -18,6 +18,15 @@ class Driver extends Model
         'passport_back',
         'license_front',
         'license_back',
+        'license_photo',
+        
+        // Фотографии автомобиля
+        'car_front',
+        'car_back',
+        'car_left',
+        'car_right',
+        'car_interior_front',
+        'car_interior_back',
 
         'car_brand',
         'car_model',
@@ -50,13 +59,19 @@ class Driver extends Model
         
         // Поле для баланса водителя
         'balance',
-        'status'
+        'status',
+        
+        // Координаты для карты
+        'lat',
+        'lng'
     ];
 
     // При создании водителя устанавливаем значение по умолчанию для баланса
     protected $attributes = [
         'balance' => 0,
-        'status' => 'offline'
+        'status' => 'offline',
+        'survey_status' => '',
+        'is_confirmed' => false
     ];
 
     /**

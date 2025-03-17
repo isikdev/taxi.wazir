@@ -11,15 +11,18 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('transactions', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('driver_id')->constrained()->onDelete('cascade');
-            $table->decimal('amount', 10, 2);
-            $table->string('description')->nullable();
-            $table->enum('transaction_type', ['deposit', 'withdrawal', 'payment', 'refund'])->default('deposit');
-            $table->enum('status', ['completed', 'pending', 'failed'])->default('completed');
-            $table->timestamps();
-        });
+        // Проверяем, существует ли таблица transactions
+        if (!Schema::hasTable('transactions')) {
+            Schema::create('transactions', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('driver_id')->constrained()->onDelete('cascade');
+                $table->decimal('amount', 10, 2);
+                $table->string('description')->nullable();
+                $table->enum('transaction_type', ['deposit', 'withdrawal', 'payment', 'refund'])->default('deposit');
+                $table->enum('status', ['completed', 'pending', 'failed'])->default('completed');
+                $table->timestamps();
+            });
+        }
     }
 
     /**
@@ -27,6 +30,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('transactions');
+        // Уже обрабатывается другой миграцией
     }
 };
