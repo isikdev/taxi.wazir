@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="{{ asset('assets/css/disp/main.css') }}">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
     <link rel="stylesheet" href="{{ asset('assets/css/disp/notifications.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     @stack('styles')
 </head>
 
@@ -178,7 +179,8 @@
                                 <div class="notifications-dropdown" id="notifications-dropdown">
                                     <div class="notifications-header">
                                         <h3 class="notifications-title">Уведомления</h3>
-                                        <button class="mark-all-read" id="mark-all-read">Отметить все как прочитанные</button>
+                                        <button class="mark-all-read" id="mark-all-read">Отметить все как
+                                            прочитанные</button>
                                     </div>
                                     <div id="notifications-list">
                                         <div class="notification-empty">У вас нет новых уведомлений</div>
@@ -270,6 +272,126 @@
                 })
                 .catch(error => console.error('Ошибка при загрузке баланса:', error));
         }, 1000);
+
+        // Добавляем кнопку для тестирования уведомлений
+        const testButton = document.createElement('button');
+        testButton.textContent = 'Тест уведомления';
+        testButton.style.position = 'fixed';
+        testButton.style.bottom = '20px';
+        testButton.style.right = '20px';
+        testButton.style.padding = '10px 20px';
+        testButton.style.backgroundColor = '#4CAF50';
+        testButton.style.color = 'white';
+        testButton.style.border = 'none';
+        testButton.style.borderRadius = '5px';
+        testButton.style.cursor = 'pointer';
+        testButton.style.zIndex = '9999';
+        testButton.onclick = function() {
+            if (window.testNotification) {
+                window.testNotification();
+            } else {
+                alert('Функция тестирования уведомлений не найдена!');
+            }
+        };
+        document.body.appendChild(testButton);
+
+        // Проверяем подключение к Pusher через консоль
+        console.log('Pusher доступен:', typeof Pusher !== 'undefined');
+
+        // Diagnostic WebSocket check
+        if (typeof Pusher !== 'undefined') {
+            const diagnosticPusher = new Pusher('4ts3aIX8F1orXMIidsijQtTiYR9u262FNLOMoma_JE8', {
+                cluster: 'eu',
+                forceTLS: true,
+                enabledTransports: ['ws', 'wss']
+            });
+
+            diagnosticPusher.connection.bind('connected', function() {
+                console.log('%c WebSocket подключение успешно установлено!',
+                    'background: #4CAF50; color: white; padding: 5px;');
+            });
+
+            diagnosticPusher.connection.bind('error', function(err) {
+                console.error('%c Ошибка WebSocket подключения:',
+                    'background: #F44336; color: white; padding: 5px;', err);
+            });
+        }
+    });
+    </script>
+    <script>
+    // Настройки Pusher в браузере
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('Initializing Pusher with your keys...');
+
+        // Для отладки
+        Pusher.logToConsole = true;
+
+        const pusher = new Pusher('f63d33c94e33b1f539e8', {
+            cluster: 'ap2'
+        });
+
+        const channel = pusher.subscribe('my-channel');
+
+        channel.bind('my-event', function(data) {
+            console.log('Received event:', data);
+            if (data && data.notification) {
+                if (window.playNotificationSound) {
+                    window.playNotificationSound();
+                }
+
+                if (window.showToast) {
+                    window.showToast(data.notification);
+                }
+
+                if (window.addNotificationToList) {
+                    window.addNotificationToList(data.notification);
+                }
+
+                if (window.updateNotificationCount) {
+                    window.updateNotificationCount();
+                }
+            }
+        });
+    });
+    </script>
+    <script>
+    // Проверка загрузки библиотек
+    document.addEventListener('DOMContentLoaded', function() {
+        // Проверяем Toastify
+        if (typeof Toastify === 'undefined') {
+            console.error('ОШИБКА: Библиотека Toastify не загружена!');
+        } else {
+            console.log('Toastify успешно загружен');
+        }
+
+        // Проверяем Pusher
+        if (typeof Pusher === 'undefined') {
+            console.error('ОШИБКА: Библиотека Pusher не загружена!');
+        } else {
+            console.log('Pusher успешно загружен');
+
+            // Проверяем подключение через тестовое уведомление
+            setTimeout(function() {
+                console.log('Отправляем тестовое уведомление через Pusher...');
+                const testEvent = {
+                    notification: {
+                        id: Date.now(),
+                        type: 'balance',
+                        title: 'Тестовое уведомление',
+                        data: {
+                            message: 'Это тестовое уведомление для проверки Pusher.'
+                        },
+                        created_at: new Date().toISOString()
+                    }
+                };
+
+                if (window.showToast) {
+                    window.showToast(testEvent.notification);
+                } else {
+                    console.error('Функция showToast не найдена!');
+                }
+            }, 3000); // Через 3 секунды после загрузки
+        }
     });
     </script>
     @stack('scripts')

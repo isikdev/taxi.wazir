@@ -15,7 +15,7 @@ class NotificationController extends Controller
      */
     public function getUnread()
     {
-        $notifications = Notification::where('read', false)
+        $notifications = Notification::whereNull('read_at')
                                     ->orderBy('created_at', 'desc')
                                     ->get();
                                     
@@ -50,7 +50,7 @@ class NotificationController extends Controller
     public function markAsRead($id)
     {
         $notification = Notification::findOrFail($id);
-        $notification->read = true;
+        $notification->read_at = now();
         $notification->save();
         
         return response()->json(['success' => true]);
@@ -63,8 +63,8 @@ class NotificationController extends Controller
      */
     public function markAllAsRead()
     {
-        Notification::where('read', false)
-                  ->update(['read' => true]);
+        Notification::whereNull('read_at')
+                  ->update(['read_at' => now()]);
                   
         return response()->json(['success' => true]);
     }
@@ -80,16 +80,31 @@ class NotificationController extends Controller
      */
     public function create($type, $title, $message, $data = [])
     {
+        $data = array_merge(['message' => $message], $data);
+        
         $notification = Notification::create([
             'type' => $type,
             'title' => $title,
-            'message' => $message,
             'data' => $data,
-            'read' => false
+            'read_at' => null
         ]);
         
-        // Вызываем событие для WebSockets
-        event(new NewNotification($notification));
+        try {
+            // Вызываем событие для WebSockets немедленно
+            broadcast(new NewNotification($notification))->toOthers();
+            
+            // Для отладки
+            \Log::info('Отправлено уведомление через broadcast', [
+                'notification_id' => $notification->id,
+                'type' => $type,
+                'title' => $title
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Ошибка при отправке уведомления через broadcast', [
+                'error' => $e->getMessage(),
+                'notification_id' => $notification->id
+            ]);
+        }
         
         return $notification;
     }

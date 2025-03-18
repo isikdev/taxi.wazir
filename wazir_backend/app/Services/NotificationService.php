@@ -26,8 +26,23 @@ class NotificationService
             'data' => $data,
         ]);
         
-        // Вызываем событие для WebSockets
-        event(new NewNotification($notification));
+        try {
+            // Вызываем событие для WebSockets немедленно
+            broadcast(new NewNotification($notification))->toOthers();
+            
+            // Для отладки
+            \Log::info('Отправлено уведомление через broadcast (сервис)', [
+                'notification_id' => $notification->id,
+                'type' => $type,
+                'title' => $title,
+                'user_id' => $userId
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Ошибка при отправке уведомления через broadcast (сервис)', [
+                'error' => $e->getMessage(),
+                'notification_id' => $notification->id
+            ]);
+        }
         
         return $notification;
     }

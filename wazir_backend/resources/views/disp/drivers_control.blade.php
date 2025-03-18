@@ -294,6 +294,26 @@
     background-color: #F44336;
     color: white;
 }
+
+.status-filter {
+    padding: 8px 15px;
+    background-color: #333;
+    color: white;
+    border: 1px solid #555;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-right: 5px;
+    transition: background-color 0.3s ease;
+}
+
+.status-filter.active {
+    background-color: #4CAF50;
+    border-color: #4CAF50;
+}
+
+.status-filter:hover:not(.active) {
+    background-color: #444;
+}
 </style>
 @endpush
 
@@ -302,21 +322,23 @@
 <div class="main__subheader-drivers">
     <div class="main__subheader-add">
         <div class="main__header-search-item">
-            <form action="#" style="background-color: #47484c;">
-                <input type="search" placeholder="Поиск" id="searchInput">
+            <form action="{{ route('dispatcher.backend.drivers_control') }}" method="GET" style="background-color: #47484c;">
+                <input type="search" name="search" placeholder="Поиск" id="searchInput" value="{{ $search ?? '' }}">
+                <input type="hidden" name="status" value="{{ $status ?? 'pending' }}">
                 <button style="padding: 0px;">
                     <img src="{{ asset('assets/img/disp/ico/search.png') }}" alt="search">
                 </button>
             </form>
         </div>
         <div class="main__subheader-filing">
-            <form action="#">
-                <select name="filing-status" id="statusFilter">
-                    <option value="all" selected>Все заявки</option>
-                    <option value="submitted">В ожидании</option>
-                    <option value="approved">Одобренные</option>
-                    <option value="rejected">Отклоненные</option>
+            <form action="{{ route('dispatcher.backend.drivers_control') }}" method="GET" id="statusForm">
+                <select name="status" id="statusFilter">
+                    <option value="all" {{ ($status ?? '') == 'all' ? 'selected' : '' }}>Все заявки</option>
+                    <option value="pending" {{ ($status ?? '') == 'pending' ? 'selected' : '' }}>В ожидании</option>
+                    <option value="approved" {{ ($status ?? '') == 'approved' ? 'selected' : '' }}>Одобренные</option>
+                    <option value="rejected" {{ ($status ?? '') == 'rejected' ? 'selected' : '' }}>Отклоненные</option>
                 </select>
+                <input type="hidden" name="search" value="{{ $search ?? '' }}">
             </form>
         </div>
     </div>
@@ -330,7 +352,7 @@
         </div>
         <div class="main__subheader-balance">
             <img src="{{ asset('assets/img/disp/ico/balance.png') }}" alt="balance">
-            <p>Баланс: 10,000</p>
+            <p>Баланс: {{ number_format($totalBalance ?? 0, 0, '.', ' ') }}</p>
         </div>
     </div>
 </div>
@@ -980,33 +1002,14 @@ $(document).ready(function() {
     });
 
     // Обработка изменения фильтра
-    $('#statusFilter').on('change', function() {
-        const selectedStatus = $(this).val();
+    $('#statusFilter').change(function() {
+        $(this).closest('form').submit();
+    });
 
-        // Показать все заявки, если выбран вариант "Все заявки"
-        if (selectedStatus === 'all') {
-            $('.main__card-item').show();
-            $('#noApplicationsMessage').remove();
-            return;
-        }
-
-        // Скрыть все заявки, затем показать только те, которые соответствуют выбранному статусу
-        $('.main__card-item').hide();
-        $(`.main__card-item[data-status="${selectedStatus}"]`).show();
-
-        // Если нет заявок с выбранным статусом, показать сообщение
-        if ($(`.main__card-item[data-status="${selectedStatus}"]`).length === 0) {
-            if ($('#noApplicationsMessage').length === 0) {
-                $('#applicationsContainer').append(
-                    `<p id="noApplicationsMessage" class="default__cars">
-                        Нет заявок со статусом "${selectedStatus === 'submitted' ? 'В ожидании' : 
-                        (selectedStatus === 'approved' ? 'Одобренные' : 'Отклоненные')}"
-                    </p>`
-                );
-            }
-        } else {
-            $('#noApplicationsMessage').remove();
-        }
+    // Если фильтр активен, делаем кнопку выделенной
+    $(document).ready(function() {
+        $('.status-filter').removeClass('active');
+        $(`.status-filter[data-status="${$('#statusFilter').val()}`).addClass('active');
     });
 
     // Функция обновления статуса в модальном окне
@@ -1051,8 +1054,9 @@ $(document).ready(function() {
         }
 
         // Загружаем данные водителя для отображения в модальном окне
+        console.log("Загрузка данных водителя с сервера...");
         $.ajax({
-            url: `${publicUrl}/backend/disp/driver-application/${driverId}`,
+            url: '{{ route("dispatcher.backend.driver-application-details", ["id" => "__id__"]) }}'.replace('__id__', driverId),
             type: 'GET',
             dataType: 'json',
             success: function(response) {
@@ -1251,7 +1255,7 @@ $(document).ready(function() {
         // Загружаем данные водителя
         console.log("Загрузка данных водителя с сервера...");
         $.ajax({
-            url: `${publicUrl}/backend/disp/driver-application/${driverId}`,
+            url: '{{ route("dispatcher.backend.driver-application-details", ["id" => "__id__"]) }}'.replace('__id__', driverId),
             type: 'GET',
             dataType: 'json',
             success: function(response) {

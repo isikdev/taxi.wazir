@@ -7,24 +7,126 @@ use App\Http\Controllers\DriverCreationController;
 use App\Http\Controllers\SurveyController;
 use App\Http\Controllers\DriverApplicationController;
 use App\Http\Controllers\OrderController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Middleware\DispatcherAuth;
 
+// Перенаправляем корневой URL на страницу логина диспетчера
 Route::get('/', function () {
-    return redirect()->route('dispatcher.backend.index');
+    return redirect()->route('dispatcher.login');
 });
 
+// Маршруты для клиентов
 Route::prefix('client')->group(function () {
     Route::get('/', [DispatcherController::class, 'index'])->name('client.dispatcher.index');
 });
 
-Route::prefix('disp')->group(function () {
-    Route::get('/', [DispatcherController::class, 'index'])->name('dispatcher.index');
-    Route::get('/drivers', [DispatcherController::class, 'index'])->name('dispatcher.drivers');
-    Route::get('/drivers/list', [DispatcherController::class, 'list'])->name('dispatcher.drivers.list');
-    Route::get('/maps', function() {
-        return view('disp.maps');
-    })->name('dispatcher.maps');
+// Маршруты для входа диспетчера (доступны без авторизации)
+Route::get('/disp/login', [DispatcherController::class, 'showLogin'])->name('dispatcher.login');
+Route::post('/disp/login', [DispatcherController::class, 'processLogin'])->name('dispatcher.login.process');
+Route::get('/disp/logout', [DispatcherController::class, 'logout'])->name('dispatcher.logout');
+
+// ВСЕ маршруты для диспетчера защищены middleware dispatcher.auth
+Route::middleware(\App\Http\Middleware\DispatcherAuthMiddleware::class)->group(function () {
+    // Основные маршруты диспетчера
+    Route::prefix('disp')->group(function () {
+        Route::get('/', [DispatcherController::class, 'index'])->name('dispatcher.index');
+        Route::get('/drivers', [DispatcherController::class, 'index'])->name('dispatcher.drivers');
+        Route::get('/drivers/list', [DispatcherController::class, 'list'])->name('dispatcher.drivers.list');
+        Route::get('/maps', function() {
+            return view('disp.maps');
+        })->name('dispatcher.maps');
+    });
+
+    // Маршруты для бэкенда диспетчера
+    Route::prefix('disp/backend')->group(function () {
+        Route::get('/', [DispatcherController::class, 'index'])->name('dispatcher.backend.index');
+        Route::get('/analytics', [DispatcherController::class, 'analytics'])->name('dispatcher.backend.analytics');
+        Route::get('/get_balance', [DispatcherController::class, 'get_balance'])->name('dispatcher.backend.get_balance');
+        Route::get('/pay_balance', [DispatcherController::class, 'pay_balance'])->name('dispatcher.backend.pay_balance');
+        Route::post('/process_balance_payment', [DispatcherController::class, 'processBalancePayment'])->name('dispatcher.backend.process_balance_payment');
+        Route::get('/drivers', [DispatcherController::class, 'drivers'])->name('dispatcher.backend.drivers');
+        Route::get('/new_order', [DispatcherController::class, 'new_order'])->name('dispatcher.backend.new_order');
+
+        // Маршруты для управления водителями и API
+        Route::post('/order/create', [OrderController::class, 'create'])->name('dispatcher.backend.order.create');
+        Route::get('/order/details/{id}', [OrderController::class, 'getOrderDetails'])->name('dispatcher.backend.order.details');
+        Route::get('/order/drivers-nearby', [OrderController::class, 'getDriversNearby'])->name('dispatcher.backend.order.drivers-nearby');
+        Route::post('/order/assign', [OrderController::class, 'assignOrder'])->name('dispatcher.backend.order.assign');
+        Route::get('/drivers/list', [DispatcherController::class, 'getDriversList'])->name('dispatcher.backend.drivers.list');
+        Route::get('/drivers/json', [DispatcherController::class, 'getDriversJson'])->name('dispatcher.backend.drivers.json');
+        Route::delete('/drivers/{driver}/delete', [DispatcherController::class, 'deleteDriver'])->name('dispatcher.backend.drivers.delete');
+        
+        // Добавляем маршрут для получения тарифов
+        Route::get('/tariffs/json', [DispatcherController::class, 'getTariffsJson'])->name('dispatcher.backend.tariffs.json');
+        
+        // Добавляем маршрут для получения заказов в формате JSON
+        Route::get('/orders/json', [DispatcherController::class, 'getOrdersJson'])->name('dispatcher.backend.orders.json');
+
+        // Добавляем маршрут для получения общего баланса
+        Route::get('/get_total_balance', [DispatcherController::class, 'getTotalBalanceApi'])->name('dispatcher.backend.get_total_balance');
+
+        // Маршруты для управления заявками водителей
+        Route::get('/driver-applications', [DispatcherController::class, 'driverApplications'])->name('dispatcher.backend.driver-applications');
+        Route::post('/driver-applications/{driverId}/approve', [DispatcherController::class, 'approveApplication'])->name('dispatcher.backend.approve-application');
+        Route::post('/driver-applications/{driverId}/reject', [DispatcherController::class, 'rejectApplication'])->name('dispatcher.backend.reject-application');
+
+        // Маршруты для DriverCreationController
+        Route::get('/drivers_control_edit', [DriverCreationController::class, 'showStep1'])
+            ->name('dispatcher.backend.drivers_control_edit');
+        Route::post('/drivers_control_edit', [DriverCreationController::class, 'processStep1'])
+            ->name('dispatcher.backend.process_drivers_control_edit');
+
+        Route::get('/drivers_num_edit/{driver}', [DriverCreationController::class, 'showStep2'])
+            ->name('dispatcher.backend.drivers_num_edit');
+        Route::post('/drivers_num_edit/{driver}', [DriverCreationController::class, 'processStep2'])
+            ->name('dispatcher.backend.process_drivers_num_edit');
+
+        Route::get('/drivers_car_edit/{driver}', [DriverCreationController::class, 'showStep3'])
+            ->name('dispatcher.backend.drivers_car_edit');
+        Route::post('/drivers_car_edit/{driver}', [DriverCreationController::class, 'processStep3'])
+            ->name('dispatcher.backend.process_drivers_car_edit');
+
+        // Маршруты для управления заявками водителей
+        Route::get('/drivers_control', [DriverApplicationController::class, 'index'])
+            ->name('dispatcher.backend.drivers_control');
+        Route::get('/driver-application/{id}', [DriverApplicationController::class, 'getApplicationDetails'])
+            ->name('dispatcher.backend.driver-application-details');
+        Route::post('/driver-application/{id}/approve', [DriverApplicationController::class, 'approveApplication'])
+            ->name('dispatcher.backend.approve-application');
+        Route::post('/driver-application/{id}/reject', [DriverApplicationController::class, 'rejectApplication'])
+            ->name('dispatcher.backend.reject-application');
+
+        Route::get('/cars', [DispatcherController::class, 'cars'])->name('dispatcher.backend.cars');
+        Route::get('/chat', [DispatcherController::class, 'chat'])->name('dispatcher.backend.chat');
+        Route::get('/cars/list', [DispatcherController::class, 'getCarsList'])
+            ->name('dispatcher.backend.cars.list');
+
+        // Маршруты для чата
+        Route::get('/chat/list', [DispatcherController::class, 'getChatList'])
+            ->name('dispatcher.backend.chat.list');
+        Route::get('/chat/{chatId}/messages', [DispatcherController::class, 'getChatMessages']);
+        Route::post('/chat/{chatId}/send', [DispatcherController::class, 'sendChatMessage']);
+        Route::post('/chat/{chatId}/mark-read', [DispatcherController::class, 'markChatAsRead']);
+
+        // Добавляем маршрут для карты
+        Route::get('/maps', function() {
+            $totalBalance = \Illuminate\Support\Facades\Cache::remember('total_balance', 60, function () {
+                return \App\Models\Driver::sum('balance');
+            });
+            return view('disp.maps', compact('totalBalance'));
+        })->name('dispatcher.backend.maps');
+
+        // Маршруты для системы уведомлений
+        Route::prefix('api/notifications')->group(function () {
+            Route::get('/unread', [NotificationController::class, 'getUnread']);
+            Route::get('/all', [NotificationController::class, 'getAll']);
+            Route::post('/{id}/read', [NotificationController::class, 'markAsRead']);
+            Route::post('/mark-all-read', [NotificationController::class, 'markAllAsRead']);
+        });
+    });
 });
 
+// Маршруты для водителей
 Route::prefix('driver')->group(function () {
     Route::get('/', function () {
         return view('driver.index');
@@ -48,11 +150,12 @@ Route::prefix('driver')->group(function () {
         if ($driver) {
             // Сохраняем ID водителя в сессии
             session(['driver_id' => $driver->id]);
-            return redirect()->route('driver.profile');
+            
+            return redirect()->route('driver.index');
         }
         
         return back()->withErrors(['phone' => 'Неверный номер телефона или пароль']);
-    });
+    })->name('driver.login.process');
     
     // Маршрут для профиля водителя
     Route::get('/profile', function() {
@@ -91,7 +194,7 @@ Route::prefix('driver')->group(function () {
             
             // Проверяем статус анкеты
             if ($driver->survey_status !== 'approved') {
-                return redirect()->route('driver.survey.applicationStatus');
+                return redirect()->route('driver.survey.application-status');
             }
             
             // Форматируем дату правильно, если она есть
@@ -149,6 +252,8 @@ Route::group(['prefix' => 'backend'], function() {
         Route::get('/step7', [SurveyController::class, 'showStep7'])->name('step7');
         Route::post('/step7', [SurveyController::class, 'processStep7'])->name('processStep7');
         
+        Route::get('/step7_terms', [SurveyController::class, 'showStep7Terms'])->name('step7_terms');
+        
         Route::get('/step8', [SurveyController::class, 'showStep8'])->name('step8');
         Route::post('/step8', [SurveyController::class, 'processStep8'])->name('processStep8');
         
@@ -158,99 +263,9 @@ Route::group(['prefix' => 'backend'], function() {
         // Статус анкеты
         Route::get('/application-status', [SurveyController::class, 'applicationStatus'])->name('applicationStatus');
     });
-
-    Route::prefix('disp')->group(function() {
-        Route::get('/', [DispatcherController::class, 'index'])->name('dispatcher.backend.index');
-        Route::get('/index', [DispatcherController::class, 'index'])->name('dispatcher.backend.index.explicit');
-        Route::get('/drivers', [DispatcherController::class, 'driversPage'])->name('dispatcher.backend.drivers');
-        Route::get('/drivers/list', [DispatcherController::class, 'list'])->name('dispatcher.backend.drivers.list');
-        Route::get('/drivers/json', [DispatcherController::class, 'getDriversJson'])->name('dispatcher.backend.drivers.json');
-        Route::delete('/drivers/{driver}/delete', [DispatcherController::class, 'deleteDriver'])->name('dispatcher.backend.drivers.delete');
-        
-        // Добавляем маршрут для получения тарифов
-        Route::get('/tariffs/json', [DispatcherController::class, 'getTariffsJson'])->name('dispatcher.backend.tariffs.json');
-        
-        // Добавляем маршрут для получения заказов в формате JSON
-        Route::get('/orders/json', [DispatcherController::class, 'getOrdersJson'])->name('dispatcher.backend.orders.json');
-
-        // Маршруты для управления заявками водителей
-        Route::get('/driver-applications', [DispatcherController::class, 'driverApplications'])->name('dispatcher.backend.driver-applications');
-        Route::post('/driver-applications/{driverId}/approve', [DispatcherController::class, 'approveApplication'])->name('dispatcher.backend.approve-application');
-        Route::post('/driver-applications/{driverId}/reject', [DispatcherController::class, 'rejectApplication'])->name('dispatcher.backend.reject-application');
-
-        Route::get('/analytics', [DispatcherController::class, 'analytics'])->name('dispatcher.backend.analytics');
-        
-        Route::get('/get_balance', function() {
-            $totalBalance = \Illuminate\Support\Facades\Cache::remember('total_balance', 60, function () {
-                return \App\Models\Driver::sum('balance');
-            });
-            return view('disp.get_balance', compact('totalBalance'));
-        })->name('dispatcher.backend.get_balance');
-        
-        // Маршрут для асинхронного получения общего баланса через AJAX
-        Route::get('/get_total_balance', [DispatcherController::class, 'getTotalBalanceApi'])
-            ->name('dispatcher.backend.get_total_balance');
-        
-        Route::get('/new_order', 'App\Http\Controllers\OrderController@create')->name('dispatcher.backend.new_order');
-
-        Route::get('/pay_balance', [DispatcherController::class, 'pay_balance'])->name('dispatcher.backend.pay_balance');
-        Route::post('/process_balance_payment', [DispatcherController::class, 'process_balance_payment'])->name('dispatcher.backend.process_balance_payment');
-
-        Route::get('/drivers_control_edit', [DriverCreationController::class, 'showStep1'])
-            ->name('dispatcher.backend.drivers_control_edit');
-        Route::post('/drivers_control_edit', [DriverCreationController::class, 'processStep1'])
-            ->name('dispatcher.backend.process_drivers_control_edit');
-
-        Route::get('/drivers_num_edit/{driver}', [DriverCreationController::class, 'showStep2'])
-            ->name('dispatcher.backend.drivers_num_edit');
-        Route::post('/drivers_num_edit/{driver}', [DriverCreationController::class, 'processStep2'])
-            ->name('dispatcher.backend.process_drivers_num_edit');
-
-        Route::get('/drivers_car_edit/{driver}', [DriverCreationController::class, 'showStep3'])
-            ->name('dispatcher.backend.drivers_car_edit');
-        Route::post('/drivers_car_edit/{driver}', [DriverCreationController::class, 'processStep3'])
-            ->name('dispatcher.backend.process_drivers_car_edit');
-
-        // Маршруты для управления заявками водителей
-        Route::get('/drivers_control', [DriverApplicationController::class, 'index'])
-            ->name('dispatcher.backend.drivers_control');
-        Route::get('/driver-application/{id}', [DriverApplicationController::class, 'getApplicationDetails'])
-            ->name('dispatcher.backend.driver-application-details');
-        Route::post('/driver-application/{id}/approve', [DriverApplicationController::class, 'approveApplication'])
-            ->name('dispatcher.backend.approve-application');
-        Route::post('/driver-application/{id}/reject', [DriverApplicationController::class, 'rejectApplication'])
-            ->name('dispatcher.backend.reject-application');
-
-        Route::get('/cars', [DispatcherController::class, 'cars'])->name('dispatcher.backend.cars');
-        Route::get('/chat', [DispatcherController::class, 'chat'])->name('dispatcher.backend.chat');
-        Route::get('/cars/list', [DispatcherController::class, 'getCarsList'])
-            ->name('dispatcher.backend.cars.list');
-
-        // Маршруты для чата
-        Route::get('/chat/list', [App\Http\Controllers\DispatcherController::class, 'getChatList'])
-            ->name('dispatcher.backend.chat.list');
-        Route::get('/chat/{chatId}/messages', [App\Http\Controllers\DispatcherController::class, 'getChatMessages']);
-        Route::post('/chat/{chatId}/send', [App\Http\Controllers\DispatcherController::class, 'sendChatMessage']);
-        Route::post('/chat/{chatId}/mark-read', [App\Http\Controllers\DispatcherController::class, 'markChatAsRead']);
-
-        // Добавляем маршрут для карты
-        Route::get('/maps', function() {
-            $totalBalance = \Illuminate\Support\Facades\Cache::remember('total_balance', 60, function () {
-                return \App\Models\Driver::sum('balance');
-            });
-            return view('disp.maps', compact('totalBalance'));
-        })->name('dispatcher.backend.maps');
-
-        // Маршруты для системы уведомлений
-        Route::prefix('api/notifications')->group(function () {
-            Route::get('/unread', [App\Http\Controllers\NotificationController::class, 'getUnread']);
-            Route::get('/all', [App\Http\Controllers\NotificationController::class, 'getAll']);
-            Route::post('/{id}/read', [App\Http\Controllers\NotificationController::class, 'markAsRead']);
-            Route::post('/mark-all-read', [App\Http\Controllers\NotificationController::class, 'markAllAsRead']);
-        });
-    });
 });
 
+// Тестовые маршруты
 Route::get('/test-db', function() {
     dd(\App\Models\Driver::all());
 });
@@ -258,3 +273,6 @@ Route::get('/test-db', function() {
 Route::get('/test-page', function() {
     return 'Тестовая страница работает!';
 });
+
+// Тестовый маршрут для диагностики
+Route::get('/test-tables', [App\Http\Controllers\TestController::class, 'testTables']);

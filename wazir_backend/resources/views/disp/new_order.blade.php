@@ -1090,7 +1090,7 @@ function getKyrgyzDateTime() {
 // Функция для загрузки списка водителей
 function loadDrivers() {
     $.ajax({
-        url: '/backend/disp/drivers/json',
+        url: '{{ route("dispatcher.backend.drivers.json") }}',
         method: 'GET',
         success: function(response) {
             const drivers = Array.isArray(response) ? response : (response.data || []);
@@ -1098,13 +1098,7 @@ function loadDrivers() {
         },
         error: function(xhr, status, error) {
             console.error('Ошибка при загрузке списка водителей:', error);
-            // Показываем сообщение об ошибке пользователю
-            alert(
-                'Ошибка при загрузке списка водителей. Пожалуйста, обновите страницу или обратитесь к администратору.'
-            );
-            // Добавляем в селект опцию, сообщающую об ошибке
-            const driverSelect = $('#driver-select');
-            driverSelect.empty().append('<option value="" disabled selected>Ошибка загрузки</option>');
+            alert('Не удалось загрузить список водителей. Пожалуйста, обновите страницу или обратитесь к администратору.');
         }
     });
 }

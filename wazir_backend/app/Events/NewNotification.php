@@ -10,6 +10,7 @@ use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
 
 class NewNotification implements ShouldBroadcast
 {
@@ -26,6 +27,12 @@ class NewNotification implements ShouldBroadcast
     public function __construct(Notification $notification)
     {
         $this->notification = $notification;
+        
+        Log::info('Создан объект события NewNotification', [
+            'notification_id' => $notification->id,
+            'type' => $notification->type,
+            'title' => $notification->title
+        ]);
     }
 
     /**
@@ -35,13 +42,11 @@ class NewNotification implements ShouldBroadcast
      */
     public function broadcastOn()
     {
-        // Если уведомление привязано к пользователю, отправляем в его приватный канал
-        if ($this->notification->user_id) {
-            return new PrivateChannel('user.' . $this->notification->user_id);
-        }
-        
-        // Иначе отправляем в общий канал уведомлений
-        return new Channel('notifications');
+        // Используем канал my-channel вместо notifications
+        Log::info('Трансляция уведомления в канал my-channel', [
+            'notification_id' => $this->notification->id
+        ]);
+        return new Channel('my-channel');
     }
     
     /**
@@ -51,7 +56,7 @@ class NewNotification implements ShouldBroadcast
      */
     public function broadcastWith()
     {
-        return [
+        $data = [
             'notification' => [
                 'id' => $this->notification->id,
                 'type' => $this->notification->type,
@@ -60,5 +65,21 @@ class NewNotification implements ShouldBroadcast
                 'created_at' => $this->notification->created_at
             ]
         ];
+        
+        Log::info('Подготовлены данные для трансляции уведомления', [
+            'notification_id' => $this->notification->id
+        ]);
+        
+        return $data;
+    }
+    
+    /**
+     * Название события для трансляции.
+     * 
+     * @return string
+     */
+    public function broadcastAs()
+    {
+        return 'my-event';
     }
 }

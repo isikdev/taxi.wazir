@@ -29,16 +29,41 @@ class DriverApplicationController extends Controller
     /**
      * Отображает список заявок водителей на странице диспетчерской
      */
-    public function index()
+    public function index(Request $request)
     {
         try {
-            // Получаем все заявки водителей, которые еще не обработаны
-            $applications = Driver::where('survey_status', 'pending')
-                            ->orderBy('created_at', 'desc')
-                            ->paginate(10);
+            // Получаем параметры фильтров
+            $status = $request->input('status', 'pending');
+            $search = $request->input('search');
             
-            // Создаем уведомление о новых заявках, если они есть
-            if ($applications->count() > 0) {
+            // Формируем запрос
+            $query = Driver::query();
+            
+            // Применяем фильтрацию по статусу
+            if ($status) {
+                if ($status === 'all') {
+                    // Ничего не фильтруем
+                } else {
+                    $query->where('survey_status', $status);
+                }
+            } else {
+                $query->where('survey_status', 'pending');
+            }
+            
+            // Применяем поиск
+            if ($search) {
+                $query->where(function($q) use ($search) {
+                    $q->where('full_name', 'like', "%{$search}%")
+                      ->orWhere('phone', 'like', "%{$search}%")
+                      ->orWhere('email', 'like', "%{$search}%");
+                });
+            }
+            
+            // Получаем результаты
+            $applications = $query->orderBy('created_at', 'desc')->paginate(10);
+            
+            // Создаем уведомление о новых заявках, если они есть и статус "pending"
+            if ($status === 'pending' && $applications->count() > 0) {
                 app(\App\Http\Controllers\NotificationController::class)->create(
                     'driver_application',
                     'Новые заявки водителей',
@@ -49,14 +74,17 @@ class DriverApplicationController extends Controller
             
             $totalBalance = $this->getTotalBalance();
             
-            // Возвращаем представление со списком заявок
+            // Возвращаем представление с данными
             return view('disp.drivers_control', [
-                'applications' => $applications,
-                'totalBalance' => $totalBalance
+                'pendingApplications' => $applications,
+                'totalBalance' => $totalBalance,
+                'status' => $status,
+                'search' => $search
             ]);
+            
         } catch (\Exception $e) {
-            // Выводим ошибку прямо на экран для отладки
-            return '<h1>Ошибка</h1><p>' . $e->getMessage() . '</p><pre>' . $e->getTraceAsString() . '</pre>';
+            \Log::error('Ошибка при загрузке заявок водителей: ' . $e->getMessage());
+            return back()->with('error', 'Произошла ошибка при загрузке заявок: ' . $e->getMessage());
         }
     }
     
@@ -205,7 +233,7 @@ class DriverApplicationController extends Controller
             
             // Предполагаемые поля изображений для автомобиля и салона
             $carImageFields = ['car_front', 'car_back', 'car_left', 'car_right', 
-                              'car_interior_front', 'car_interior_back'];
+                                'car_interior_front', 'car_interior_back'];
             
             // Проверяем наличие полей в таблице и добавляем отладочную информацию
             foreach (array_merge($imageFields, $carImageFields) as $field) {

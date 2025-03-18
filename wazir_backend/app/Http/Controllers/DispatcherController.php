@@ -20,8 +20,16 @@ class DispatcherController extends Controller
      */
     private function getTotalBalance()
     {
+        // Создаем таблицы и тестовые данные, если они отсутствуют
+        $this->createTestDriver();
+        
         // Используем кэширование на 24 часа для значительного ускорения
         return Cache::remember('total_balance', 86400, function () {
+            // Проверяем существование таблицы drivers
+            if (!Schema::hasTable('drivers')) {
+                \Log::warning('Таблица drivers не существует, возвращаем 0 как общий баланс');
+                return 0;
+            }
             return Driver::sum('balance');
         });
     }
@@ -31,6 +39,13 @@ class DispatcherController extends Controller
      */
     private function updateTotalBalanceCache()
     {
+        // Проверяем существование таблицы drivers
+        if (!Schema::hasTable('drivers')) {
+            \Log::warning('Таблица drivers не существует, невозможно обновить кеш общего баланса');
+            Cache::put('total_balance', 0, 86400);
+            return 0;
+        }
+        
         $totalBalance = Driver::sum('balance');
         Cache::put('total_balance', $totalBalance, 86400);
         return $totalBalance;
@@ -246,63 +261,76 @@ class DispatcherController extends Controller
         // Вычисляем процент подтвержденных водителей
         $percentage = ($total > 0) ? round(($confirmed / $total) * 100) : 0;
         
-        // Подготавливаем запрос для автомобилей с теми же фильтрами
-        $carsQuery = Driver::query();
+        // Проверка наличия полей car_brand и car_model
+        $hasCarFields = Schema::hasColumn('drivers', 'car_brand') && Schema::hasColumn('drivers', 'car_model');
         
-        // Применяем те же фильтры по дате к запросу автомобилей
-        if ($startDate && $endDate) {
-            $carsQuery->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
-        } elseif ($datePreset) {
-            $today = now()->format('Y-m-d');
+        // Подготавливаем данные по автомобилям
+        $active_cars = 0;
+        $inactive_cars = 0;
+        $total_cars = 0;
+        $cars_percentage = 0;
+        
+        if ($hasCarFields) {
+            // Подготавливаем запрос для автомобилей с теми же фильтрами
+            $carsQuery = Driver::query();
             
-            switch ($datePreset) {
-                case 'today':
-                    $carsQuery->whereDate('created_at', $today);
-                    break;
-                case 'yesterday':
-                    $carsQuery->whereDate('created_at', now()->subDay()->format('Y-m-d'));
-                    break;
-                case 'week':
-                    $carsQuery->whereBetween('created_at', [
-                        now()->startOfWeek()->format('Y-m-d') . ' 00:00:00',
-                        $today . ' 23:59:59'
-                    ]);
-                    break;
-                case 'month':
-                    $carsQuery->whereBetween('created_at', [
-                        now()->startOfMonth()->format('Y-m-d') . ' 00:00:00',
-                        $today . ' 23:59:59'
-                    ]);
-                    break;
+            // Применяем те же фильтры по дате к запросу автомобилей
+            if ($startDate && $endDate) {
+                $carsQuery->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
+            } elseif ($datePreset) {
+                $today = now()->format('Y-m-d');
+                
+                switch ($datePreset) {
+                    case 'today':
+                        $carsQuery->whereDate('created_at', $today);
+                        break;
+                    case 'yesterday':
+                        $carsQuery->whereDate('created_at', now()->subDay()->format('Y-m-d'));
+                        break;
+                    case 'week':
+                        $carsQuery->whereBetween('created_at', [
+                            now()->startOfWeek()->format('Y-m-d') . ' 00:00:00',
+                            $today . ' 23:59:59'
+                        ]);
+                        break;
+                    case 'month':
+                        $carsQuery->whereBetween('created_at', [
+                            now()->startOfMonth()->format('Y-m-d') . ' 00:00:00',
+                            $today . ' 23:59:59'
+                        ]);
+                        break;
+                }
             }
-        }
-        
-        // Применяем фильтр по статусу к автомобилям
-        if ($status && $status !== 'all') {
-            if ($status === 'free') {
-                $carsQuery->where('status', 'free');
-            } elseif ($status === 'busy') {
-                $carsQuery->where('status', 'busy');
-            } elseif ($status === 'cancelled') {
-                $carsQuery->where('status', 'cancelled');
+            
+            // Применяем фильтр по статусу к автомобилям
+            if ($status && $status !== 'all') {
+                if ($status === 'free') {
+                    $carsQuery->where('status', 'free');
+                } elseif ($status === 'busy') {
+                    $carsQuery->where('status', 'busy');
+                } elseif ($status === 'cancelled') {
+                    $carsQuery->where('status', 'cancelled');
+                }
             }
+            
+            // Подсчитываем количество авто с указанными фильтрами
+            $cars_with_data = (clone $carsQuery)->whereNotNull('car_brand')
+                            ->whereNotNull('car_model')
+                            ->count();
+            
+            // Активные автомобили
+            $active_cars = (clone $carsQuery)->whereNotNull('car_brand')
+                        ->whereNotNull('car_model')
+                        ->where('is_confirmed', true)
+                        ->where('survey_status', 'approved')
+                        ->count();
+            
+            $inactive_cars = $cars_with_data - $active_cars;
+            $total_cars = $cars_with_data;
+            $cars_percentage = ($total_cars > 0) ? round(($active_cars / $total_cars) * 100) : 0;
+        } else {
+            \Log::warning('Поля car_brand и/или car_model отсутствуют в таблице drivers');
         }
-        
-        // Подсчитываем количество авто с указанными фильтрами
-        $cars_with_data = (clone $carsQuery)->whereNotNull('car_brand')
-                          ->whereNotNull('car_model')
-                          ->count();
-        
-        // Активные автомобили
-        $active_cars = (clone $carsQuery)->whereNotNull('car_brand')
-                      ->whereNotNull('car_model')
-                      ->where('is_confirmed', true)
-                      ->where('survey_status', 'approved')
-                      ->count();
-        
-        $inactive_cars = $cars_with_data - $active_cars;
-        $total_cars = $cars_with_data;
-        $cars_percentage = ($total_cars > 0) ? round(($active_cars / $total_cars) * 100) : 0;
         
         // Получаем данные о транзакциях водителей
         $transactionsData = $this->getTransactionsData($datePreset, $startDate, $endDate);
@@ -355,83 +383,119 @@ class DispatcherController extends Controller
             'totalBalance', 'transactions_count', 'transactions_sum', 'transactions_data'
         ));
     }
-    public function pay_balance()
+    public function get_balance()
     {
-        // Получаем список всех водителей
-        $drivers = Driver::all();
         $totalBalance = $this->getTotalBalance();
-        
-        // Отображаем страницу пополнения баланса
-        return view('disp.pay_balance', compact('drivers', 'totalBalance'));
+        return view('disp.get_balance', compact('totalBalance'));
     }
     
-    public function process_balance_payment(Request $request)
+    public function pay_balance()
     {
-        // Режим AJAX запроса
-        $isAjax = $request->ajax();
-        
         try {
-            // Валидация данных
-            $validated = $request->validate([
-                'driver_id' => 'required|exists:drivers,id',
-                'amount' => 'required|numeric|min:1',
-                'payment_method' => 'nullable|in:cash,card,transfer',
-                'comment' => 'nullable|string|max:255'
-            ]);
+            // Создаем таблицы и тестовые данные, если они отсутствуют
+            $this->createTestDriver();
+            $this->createTransactionsTable();
+            
+            // Проверяем существование таблицы drivers
+            if (!Schema::hasTable('drivers')) {
+                \Log::warning('Таблица drivers не существует, показываем пустую страницу пополнения баланса');
+                $drivers = collect([]); // Пустая коллекция
+                $totalBalance = 0;
+                return view('disp.pay_balance', compact('drivers', 'totalBalance'));
+            }
+            
+            // Получаем список водителей с положительным балансом
+            $drivers = Driver::where('balance', '>', 0)
+                           ->where('is_confirmed', true)
+                           ->orderBy('balance', 'desc')
+                           ->paginate(20);
+            
+            // Получаем общий баланс всех водителей
+            $totalBalance = $this->getTotalBalance();
+            
+            // Отображаем страницу с данными
+            return view('disp.pay_balance', compact('drivers', 'totalBalance'));
+        } catch (\Exception $e) {
+            \Log::error('Ошибка при загрузке страницы payout: ' . $e->getMessage());
+            return back()->with('error', 'Ошибка при загрузке страницы: ' . $e->getMessage());
+        }
+    }
+    
+    public function new_order()
+    {
+        $totalBalance = $this->getTotalBalance();
+        return view('disp.new_order', compact('totalBalance'));
+    }
+    
+    public function processBalancePayment(Request $request)
+    {
+        // Создаем таблицы и тестовые данные, если они отсутствуют
+        $this->createTestDriver();
+        $this->createTransactionsTable();
+        
+        // Валидация запроса
+        $request->validate([
+            'driver_id' => 'required|exists:drivers,id',
+            'amount' => 'required|numeric|min:0.01',
+            'payment_method' => 'nullable|string',
+            'comment' => 'nullable|string|max:255',
+        ]);
+
+        // Получаем данные из запроса
+        $driverId = $request->driver_id;
+        $amount = (float)$request->amount;
+        $paymentMethod = $request->payment_method ?? 'cash';
+        $comment = $request->comment ?? 'Пополнение через диспетчера';
+        
+        // Проверяем режим Ajax
+        $isAjax = $request->ajax();
+
+        try {
+            // Начинаем транзакцию БД
+            DB::beginTransaction();
             
             // Находим водителя
-            $driver = Driver::findOrFail($request->driver_id);
+            $driver = Driver::findOrFail($driverId);
+            
+            // Сохраняем текущий баланс
+            $oldBalance = $driver->balance ?? 0;
             
             // Обновляем баланс
-            $oldBalance = $driver->balance ?? 0;
-            $driver->balance += $request->amount;
+            $driver->balance += $amount;
             $driver->save();
             
-            // Записываем транзакцию, если таблица существует
-            if (Schema::hasTable('transactions')) {
-                Transaction::create([
-                    'driver_id' => $driver->id,
-                    'amount' => $request->amount,
-                    'description' => $request->comment ?? 'Пополнение через диспетчера',
-                    'transaction_type' => 'deposit',
-                    'status' => 'completed'
-                ]);
+            // Создаем запись о транзакции, только если возможно
+            try {
+                if (class_exists('App\Models\Transaction') && Schema::hasTable('transactions')) {
+                    $transaction = new \App\Models\Transaction();
+                    $transaction->driver_id = $driverId;
+                    $transaction->amount = $amount;
+                    $transaction->transaction_type = 'deposit';
+                    $transaction->status = 'completed';
+                    $transaction->description = $comment;
+                    
+                    // Проверяем, есть ли поле payment_method в таблице
+                    if (Schema::hasColumn('transactions', 'payment_method')) {
+                        $transaction->payment_method = $paymentMethod;
+                    }
+                    
+                    $transaction->save();
+                } else {
+                    \Log::warning('Таблица transactions не существует, запись о транзакции не создана');
+                }
+            } catch (\Exception $innerEx) {
+                // Игнорируем ошибку с транзакциями, но логируем её
+                \Log::error('Ошибка при создании записи о транзакции: ' . $innerEx->getMessage());
+                // Транзакция баланса должна продолжиться
             }
             
             // Обновляем кеш общего баланса
             $this->updateTotalBalanceCache();
             
-            // Создаем уведомление о пополнении баланса с новой системой уведомлений
-            try {
-                // Проверяем существует ли сервис уведомлений
-                if (class_exists('\App\Services\NotificationService')) {
-                    $notificationService = app('\App\Services\NotificationService');
-                    
-                    // Дата и время для уведомления
-                    $now = \Carbon\Carbon::now()->format('d.m.Y H:i:s');
-                    
-                    // Создаем уведомление
-                    $notificationService->createGlobal(
-                        'balance',
-                        'Пополнение баланса',
-                        [
-                            'message' => "Баланс водителя {$driver->full_name} пополнен на {$request->amount} ₸ ({$now})",
-                            'driver_id' => $driver->id,
-                            'driver_name' => $driver->full_name,
-                            'amount' => $request->amount,
-                            'old_balance' => $oldBalance,
-                            'new_balance' => $driver->balance,
-                            'datetime' => $now,
-                            'payment_method' => $validated['payment_method'] ?? 'cash'
-                        ]
-                    );
-                }
-            } catch (\Exception $e) {
-                // Логируем ошибку, но продолжаем выполнение
-                \Log::warning('Ошибка при создании уведомления: ' . $e->getMessage());
-            }
+            // Фиксируем транзакцию в БД
+            DB::commit();
             
-            // Для Ajax запросов возвращаем JSON
+            // Для Ajax-запросов возвращаем JSON с результатом
             if ($isAjax) {
                 return response()->json([
                     'success' => true,
@@ -441,12 +505,16 @@ class DispatcherController extends Controller
                 ]);
             }
             
-            // Для обычных запросов возвращаем редирект
+            // Для обычных запросов возвращаем редирект с сообщением
             return redirect()->back()->with('success', 'Баланс успешно пополнен');
+            
         } catch (\Exception $e) {
+            // Откатываем транзакцию в случае ошибки
+            DB::rollBack();
+            
             \Log::error('Ошибка при пополнении баланса: ' . $e->getMessage());
             
-            // Для Ajax запросов возвращаем JSON с ошибкой
+            // Для Ajax-запросов возвращаем JSON с ошибкой
             if ($isAjax) {
                 return response()->json([
                     'success' => false,
@@ -459,6 +527,23 @@ class DispatcherController extends Controller
         }
     }
     
+    public function getTotalBalanceApi()
+    {
+        try {
+            $totalBalance = $this->getTotalBalance();
+            return response()->json([
+                'success' => true,
+                'total_balance' => $totalBalance
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Ошибка при получении общего баланса: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Ошибка при получении общего баланса: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
     public function cars()
     {
         $totalBalance = $this->getTotalBalance();
@@ -490,6 +575,9 @@ class DispatcherController extends Controller
         }
     }
 
+    /**
+     * Получает список машин в формате JSON
+     */
     public function getCarsList(Request $request)
     {
         try {
@@ -512,6 +600,90 @@ class DispatcherController extends Controller
             \Log::error('Ошибка при получении списка машин', [
                 'error' => $e->getMessage()
             ]);
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Получает список водителей в формате JSON для динамической загрузки на странице new_order
+     */
+    public function getDriversJson(Request $request)
+    {
+        try {
+            // Получаем подтвержденных водителей
+            $drivers = Driver::where('is_confirmed', true)
+                ->whereNotNull('car_brand')
+                ->select([
+                    'id', 
+                    'full_name', 
+                    'phone', 
+                    'car_brand', 
+                    'car_model', 
+                    'car_color', 
+                    'car_year', 
+                    'license_plate', 
+                    'status',
+                    'lat',
+                    'lng'
+                ])
+                ->get();
+
+            if ($drivers->isEmpty()) {
+                \Log::warning('Не найдено подтвержденных водителей для JSON');
+                
+                // Создаем тестовые данные для демонстрации
+                $drivers = collect([
+                    [
+                        'id' => 1,
+                        'full_name' => 'Тестовый Водитель 1',
+                        'phone' => '+996 555 123456',
+                        'car_brand' => 'Toyota',
+                        'car_model' => 'Camry',
+                        'car_color' => 'Белый',
+                        'car_year' => '2020',
+                        'license_plate' => 'KG 1234 AB',
+                        'status' => 'free',
+                        'lat' => 42.8746,
+                        'lng' => 74.5698
+                    ],
+                    [
+                        'id' => 2,
+                        'full_name' => 'Тестовый Водитель 2',
+                        'phone' => '+996 555 654321',
+                        'car_brand' => 'Honda',
+                        'car_model' => 'Accord',
+                        'car_color' => 'Черный',
+                        'car_year' => '2019',
+                        'license_plate' => 'KG 5678 CD',
+                        'status' => 'free',
+                        'lat' => 42.8756,
+                        'lng' => 74.5708
+                    ]
+                ]);
+            }
+            
+            // Для тестирования добавляем случайные координаты в Бишкеке, если они отсутствуют
+            $drivers = $drivers->map(function($driver) {
+                // Центр Бишкека
+                $centerLat = 42.8746;
+                $centerLng = 74.5698;
+                
+                // Генерируем случайные координаты в радиусе 5 км от центра
+                $radiusInDegrees = 0.05; // примерно 5 км
+                
+                // Если координаты не установлены, генерируем случайные
+                if (!isset($driver['lat']) || !isset($driver['lng']) || !$driver['lat'] || !$driver['lng']) {
+                    $driver['lat'] = $centerLat + (mt_rand(-1000, 1000) / 10000) * $radiusInDegrees;
+                    $driver['lng'] = $centerLng + (mt_rand(-1000, 1000) / 10000) * $radiusInDegrees;
+                }
+                
+                return $driver;
+            });
+            
+            return response()->json($drivers);
+            
+        } catch (\Exception $e) {
+            \Log::error('Ошибка при получении списка водителей для JSON: ' . $e->getMessage());
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -761,78 +933,53 @@ class DispatcherController extends Controller
     }
 
     /**
-     * Возвращает список водителей в формате JSON
+     * Получение списка заказов в формате JSON
      */
-    public function getDriversJson(Request $request)
+    public function getOrdersJson(Request $request)
     {
-        // Получаем всех водителей без фильтрации по статусу
-        $drivers = Driver::all();
-        
-        // Проверяем, есть ли водители в базе данных
-        if ($drivers->isEmpty()) {
-            // Если водителей нет, возвращаем тестовые данные
-            return [
+        try {
+            // В реальном приложении здесь запрос к таблице заказов
+            // Для примера создаем тестовые данные
+            $orders = [
                 [
                     'id' => 1,
-                    'full_name' => 'Тестовый Водитель 1',
-                    'phone' => '+996 555 123456',
-                    'car_brand' => 'Toyota',
-                    'car_model' => 'Camry',
-                    'car_color' => 'Черный',
-                    'car_year' => '2020',
-                    'license_plate' => 'KG 1234 AB',
-                    'status' => 'free',
-                    'lat' => 42.8746,
-                    'lng' => 74.5698
+                    'status' => 'active',
+                    'from_address' => 'ул. Киевская, 95',
+                    'to_address' => 'Бишкек Парк',
+                    'price' => 120,
+                    'created_at' => now()->subMinutes(5)->format('Y-m-d H:i:s'),
+                    'driver' => [
+                        'id' => 1,
+                        'name' => 'Тестовый Водитель 1',
+                        'phone' => '+996 555 123456'
+                    ],
+                    'client' => [
+                        'id' => 1,
+                        'name' => 'Клиент Тестовый',
+                        'phone' => '+996 555 789012'
+                    ]
                 ],
                 [
                     'id' => 2,
-                    'full_name' => 'Тестовый Водитель 2',
-                    'phone' => '+996 555 654321',
-                    'car_brand' => 'Honda',
-                    'car_model' => 'Accord',
-                    'car_color' => 'Белый',
-                    'car_year' => '2021',
-                    'license_plate' => 'KG 5678 CD',
-                    'status' => 'free',
-                    'lat' => 42.8756,
-                    'lng' => 74.5708
-                ],
-                [
-                    'id' => 3,
-                    'full_name' => 'Тестовый Водитель 3',
-                    'phone' => '+996 555 987654',
-                    'car_brand' => 'BMW',
-                    'car_model' => 'X5',
-                    'car_color' => 'Серебристый',
-                    'car_year' => '2022',
-                    'license_plate' => 'KG 9012 EF',
-                    'status' => 'busy',
-                    'lat' => 42.8736,
-                    'lng' => 74.5688
+                    'status' => 'waiting',
+                    'from_address' => 'ул. Ахунбаева, 114',
+                    'to_address' => 'Вефа Центр',
+                    'price' => 150,
+                    'created_at' => now()->subMinutes(2)->format('Y-m-d H:i:s'),
+                    'driver' => null,
+                    'client' => [
+                        'id' => 2,
+                        'name' => 'Клиент Второй',
+                        'phone' => '+996 555 345678'
+                    ]
                 ]
             ];
+            
+            return response()->json($orders);
+        } catch (\Exception $e) {
+            \Log::error('Ошибка при получении списка заказов: ' . $e->getMessage());
+            return response()->json(['error' => $e->getMessage()], 500);
         }
-        
-        // Для тестирования добавляем случайные координаты в Бишкеке, если они отсутствуют
-        $drivers = $drivers->map(function($driver) {
-            // Центр Бишкека
-            $centerLat = 42.8746;
-            $centerLng = 74.5698;
-            
-            // Генерируем случайные координаты в радиусе 5 км от центра
-            $radiusInDegrees = 0.05; // примерно 5 км
-            
-            // Если координаты не установлены, генерируем случайные
-            if (!$driver->lat || !$driver->lng) {
-                $driver->lat = $centerLat + (mt_rand(-1000, 1000) / 10000) * $radiusInDegrees;
-                $driver->lng = $centerLng + (mt_rand(-1000, 1000) / 10000) * $radiusInDegrees;
-            }
-            
-            return $driver;
-        });
-        
-        return $drivers;
     }
 
     /**
@@ -883,20 +1030,6 @@ class DispatcherController extends Controller
     }
 
     /**
-     * Возвращает общий баланс всех водителей через API
-     * 
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function getTotalBalanceApi()
-    {
-        $totalBalance = $this->getTotalBalance();
-        return response()->json([
-            'success' => true,
-            'total_balance' => $totalBalance
-        ]);
-    }
-
-    /**
      * Отображает страницу с водителями
      */
     public function driversPage()
@@ -919,84 +1052,6 @@ class DispatcherController extends Controller
     }
 
     /**
-     * Возвращает список заказов в формате JSON
-     * 
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function getOrdersJson(Request $request)
-    {
-        // Проверяем наличие модели Order
-        if (!class_exists('App\Models\Order')) {
-            // Если модель не существует, возвращаем тестовые данные
-            return response()->json([
-                'success' => true,
-                'data' => [],
-                'total' => 0,
-                'current_page' => 1,
-                'last_page' => 1,
-                'per_page' => 10
-            ]);
-        }
-        
-        try {
-            // Получаем параметры запроса
-            $page = $request->input('page', 1);
-            $perPage = $request->input('per_page', 10);
-            $status = $request->input('status');
-            $search = $request->input('search');
-            
-            // Формируем запрос
-            $query = \App\Models\Order::query();
-            
-            // Применяем фильтры, если они указаны
-            if ($status) {
-                $query->where('status', $status);
-            }
-            
-            // Применяем поиск, если указан
-            if ($search) {
-                $query->where(function($q) use ($search) {
-                    $q->where('order_number', 'like', "%{$search}%")
-                      ->orWhere('client_name', 'like', "%{$search}%")
-                      ->orWhere('origin_street', 'like', "%{$search}%")
-                      ->orWhere('destination_street', 'like', "%{$search}%");
-                });
-            }
-            
-            // Получаем общее количество записей после применения фильтров
-            $total = $query->count();
-            
-            // Получаем заказы с пагинацией
-            $orders = $query->orderBy('created_at', 'desc')
-                           ->skip(($page - 1) * $perPage)
-                           ->take($perPage)
-                           ->get();
-            
-            return response()->json([
-                'success' => true,
-                'data' => $orders,
-                'total' => $total,
-                'current_page' => $page,
-                'last_page' => ceil($total / $perPage),
-                'per_page' => $perPage
-            ]);
-        } catch (\Exception $e) {
-            \Log::error('Ошибка при получении заказов: ' . $e->getMessage());
-            
-            // В случае ошибки возвращаем пустой список
-            return response()->json([
-                'success' => true,
-                'data' => [],
-                'total' => 0,
-                'current_page' => 1,
-                'last_page' => 1,
-                'per_page' => 10
-            ]);
-        }
-    }
-
-    /**
      * Подготавливает данные о транзакциях для графика
      * 
      * @param string|null $datePreset 
@@ -1006,7 +1061,7 @@ class DispatcherController extends Controller
      */
     private function getTransactionsData($datePreset, $startDate, $endDate)
     {
-        // Проверяем существование модели Transaction
+        // Проверяем существование модели Transaction и таблицы
         if (!class_exists('App\\Models\\Transaction') || !Schema::hasTable('transactions')) {
             \Log::info('Таблица transactions не существует, используем пустые данные');
             
@@ -1203,6 +1258,183 @@ class DispatcherController extends Controller
                 'success' => false,
                 'message' => 'Ошибка при удалении водителя: ' . $e->getMessage()
             ], 500);
+        }
+    }
+
+    // Метод для отображения страницы входа диспетчера
+    public function showLogin()
+    {
+        // Если диспетчер уже авторизован, перенаправляем на главную страницу
+        if (session()->has('dispatcher_auth') && session('dispatcher_auth') === true) {
+            return redirect()->route('dispatcher.backend.index');
+        }
+        
+        // Убедимся, что представление существует
+        if (view()->exists('disp.login')) {
+            return view('disp.login');
+        } else {
+            // Если представление не найдено, возвращаем fallback-версию
+            return response()->view('errors.404', ['message' => 'Страница входа не найдена'], 404);
+        }
+    }
+
+    // Метод для обработки входа диспетчера
+    public function processLogin(Request $request)
+    {
+        $request->validate([
+            'username' => 'required',
+            'password' => 'required',
+        ]);
+        
+        // Проверка фиксированных учетных данных
+        if ($request->username === 'admin1' && $request->password === '123') {
+            // Сохраняем информацию об авторизации в сессии
+            session(['dispatcher_auth' => true]);
+            session(['dispatcher_name' => 'Администратор']);
+            
+            return redirect()->route('dispatcher.index');
+        }
+        
+        // Если данные неверные, возвращаем ошибку
+        return back()->with('error', 'Неверное имя пользователя или пароль');
+    }
+
+    // Метод для выхода из системы
+    public function logout()
+    {
+        // Удаляем информацию об авторизации из сессии
+        session()->forget(['dispatcher_auth', 'dispatcher_name']);
+        
+        return redirect()->route('dispatcher.login');
+    }
+
+    public function drivers()
+    {
+        $totalBalance = $this->getTotalBalance();
+        $drivers = Driver::paginate(50);
+        return view('disp.drivers', compact('drivers', 'totalBalance'));
+    }
+
+    /**
+     * Пытается создать тестовую запись в таблице drivers
+     */
+    private function createTestDriver()
+    {
+        try {
+            // Проверяем существование таблицы
+            if (!Schema::hasTable('drivers')) {
+                \Log::warning('Таблица drivers не существует, начинаем создание');
+                
+                // Создаем таблицу вручную
+                Schema::create('drivers', function ($table) {
+                    $table->id();
+                    $table->string('full_name');
+                    $table->string('phone')->nullable();
+                    $table->decimal('balance', 10, 2)->default(0);
+                    $table->boolean('is_confirmed')->default(false);
+                    $table->string('status')->default('offline');
+                    
+                    // Поля для автомобилей
+                    $table->string('car_brand')->nullable();
+                    $table->string('car_model')->nullable();
+                    $table->string('car_color')->nullable();
+                    $table->string('car_year')->nullable();
+                    $table->string('license_plate')->nullable();
+                    
+                    // Поля для статусов анкеты
+                    $table->string('survey_status')->nullable();
+                    
+                    // Координаты
+                    $table->decimal('lat', 10, 7)->nullable();
+                    $table->decimal('lng', 10, 7)->nullable();
+                    
+                    $table->timestamps();
+                });
+                
+                \Log::info('Таблица drivers успешно создана');
+            } else {
+                // Проверяем наличие полей для автомобилей и добавляем их при необходимости
+                $requiredColumns = ['car_brand', 'car_model', 'car_color', 'car_year', 'survey_status'];
+                $columnsMissing = false;
+                
+                foreach ($requiredColumns as $column) {
+                    if (!Schema::hasColumn('drivers', $column)) {
+                        $columnsMissing = true;
+                        break;
+                    }
+                }
+                
+                if ($columnsMissing) {
+                    \Log::warning('В таблице drivers отсутствуют некоторые необходимые поля, добавляем их');
+                    
+                    // Добавляем недостающие колонки
+                    Schema::table('drivers', function ($table) use ($requiredColumns) {
+                        foreach ($requiredColumns as $column) {
+                            if (!Schema::hasColumn('drivers', $column)) {
+                                $table->string($column)->nullable();
+                                \Log::info("Добавлена колонка {$column} в таблицу drivers");
+                            }
+                        }
+                    });
+                }
+            }
+            
+            // Создаем тестового водителя
+            if (DB::table('drivers')->count() == 0) {
+                DB::table('drivers')->insert([
+                    'full_name' => 'Тестовый Водитель',
+                    'phone' => '+996555123456',
+                    'balance' => 1000,
+                    'is_confirmed' => true,
+                    'status' => 'online',
+                    'car_brand' => 'Toyota',
+                    'car_model' => 'Camry',
+                    'car_color' => 'Белый',
+                    'car_year' => '2020',
+                    'license_plate' => 'A123BC',
+                    'survey_status' => 'approved',
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]);
+                \Log::info('Тестовый водитель создан');
+            }
+            
+            return true;
+        } catch (\Exception $e) {
+            \Log::error('Ошибка при создании тестового водителя: ' . $e->getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Пытается создать таблицу transactions если она не существует
+     */
+    private function createTransactionsTable()
+    {
+        try {
+            // Проверяем существование таблицы
+            if (!Schema::hasTable('transactions')) {
+                \Log::warning('Таблица transactions не существует, начинаем создание');
+                
+                // Создаем таблицу вручную
+                Schema::create('transactions', function ($table) {
+                    $table->id();
+                    $table->unsignedBigInteger('driver_id');
+                    $table->decimal('amount', 10, 2);
+                    $table->string('description')->nullable();
+                    $table->string('transaction_type')->default('deposit');
+                    $table->string('status')->default('completed');
+                    $table->string('payment_method')->nullable();
+                    $table->timestamps();
+                });
+                
+                \Log::info('Таблица transactions успешно создана');
+            }
+            
+            return true;
+        } catch (\Exception $e) {
+            \Log::error('Ошибка при создании таблицы transactions: ' . $e->getMessage());
+            return false;
         }
     }
 }

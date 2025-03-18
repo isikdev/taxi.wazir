@@ -223,13 +223,19 @@ $(document).ready(function() {
     });
 
     // Обработка нажатия на кнопку "Подтвердить"
-    $('.confirm-payment-btn').click(function() {
+    $('.confirm-payment-btn').click(function(event) {
+        // Предотвращаем стандартное поведение кнопки
+        event.preventDefault();
+        
         const row = $(this).closest('tr');
         const driverId = row.data('driver-id');
         const amountInput = row.find('.balance-amount');
         const amount = amountInput.val();
+        const paymentMethod = row.find('.payment-method').val();
         const statusCell = row.find('.payment-status');
         const balanceCell = row.find('.driver-balance');
+        const commentInput = row.find('.comment-input');
+        const comment = commentInput.length ? commentInput.val() : '';
 
         // Проверка на пустое поле
         if (!amount || isNaN(amount) || parseFloat(amount) <= 0) {
@@ -244,7 +250,9 @@ $(document).ready(function() {
             data: {
                 _token: '{{ csrf_token() }}',
                 driver_id: driverId,
-                amount: amount
+                amount: amount,
+                payment_method: paymentMethod || 'cash',
+                comment: comment || 'Пополнение через диспетчера'
             },
             beforeSend: function() {
                 statusCell.text('Обработка...');
@@ -294,19 +302,30 @@ $(document).ready(function() {
                 }, 5000);
 
                 // Запрос обновленного баланса через 2 секунды
-                setTimeout(function() {
-                    $.ajax({
-                        url: '{{ route("dispatcher.backend.drivers") }}',
-                        type: 'GET',
-                        success: function() {
-                            // Обновляем общий баланс, запрашивая его заново
-                            location.reload();
-                        }
-                    });
-                }, 2000);
+                setTimeout(updateTotalBalance, 2000);
             }
         });
     });
+    
+    /**
+     * Функция для обновления общего баланса
+     */
+    function updateTotalBalance() {
+        $.ajax({
+            url: '{{ route("dispatcher.backend.get_total_balance") }}',
+            type: 'GET',
+            success: function(response) {
+                // Проверяем, пришел ли ответ с обновленным балансом
+                if (response && response.success && response.total_balance !== undefined) {
+                    $('.main__subheader-balance p').text('Баланс: ' +
+                        new Intl.NumberFormat('ru-RU').format(response.total_balance));
+                }
+            },
+            error: function(xhr) {
+                console.error('Ошибка при обновлении общего баланса', xhr);
+            }
+        });
+    }
 
     /**
      * Отображение сообщения пользователю

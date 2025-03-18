@@ -1,0 +1,88 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        // Проверяем, существует ли таблица drivers
+        if (!Schema::hasTable('drivers')) {
+            Schema::create('drivers', function (Blueprint $table) {
+                $table->id();
+                $table->string('full_name');
+                $table->string('phone')->nullable();
+                $table->date('date_of_birth')->nullable();
+                $table->string('license_number')->nullable();
+                $table->date('license_issue_date')->nullable();
+                $table->date('license_expiry_date')->nullable();
+                $table->string('personal_number')->nullable();
+                $table->string('passport_front')->nullable();
+                $table->string('passport_back')->nullable();
+                $table->string('license_front')->nullable();
+                $table->string('license_back')->nullable();
+                $table->string('license_photo')->nullable();
+                
+                // Фотографии автомобиля
+                $table->string('car_front')->nullable();
+                $table->string('car_back')->nullable();
+                $table->string('car_left')->nullable();
+                $table->string('car_right')->nullable();
+                $table->string('car_interior_front')->nullable();
+                $table->string('car_interior_back')->nullable();
+
+                $table->string('car_brand')->nullable();
+                $table->string('car_model')->nullable();
+                $table->string('car_color')->nullable();
+                $table->string('car_year')->nullable();
+                $table->string('license_plate')->nullable();
+                $table->boolean('has_nakleyka')->default(false);
+                $table->boolean('has_lightbox')->default(false);
+                $table->boolean('has_child_seat')->default(false);
+
+                $table->string('service_type')->nullable();
+                $table->string('category')->nullable();
+                $table->string('tariff')->nullable();
+
+                $table->string('vin')->nullable();
+                $table->string('body_number')->nullable();
+                $table->string('sts')->nullable();
+                $table->string('callsign')->nullable();
+                $table->string('transmission')->nullable();
+                $table->boolean('boosters')->default(false);
+                $table->boolean('child_seat')->default(false);  
+                $table->boolean('parking_car')->default(false);
+                $table->string('tariff_extra')->nullable();
+                $table->boolean('is_confirmed')->default(false);
+                
+                // Поля для отслеживания статуса анкеты
+                $table->string('survey_status')->nullable();
+                $table->text('rejection_reason')->nullable();
+                $table->timestamp('approved_at')->nullable();
+                
+                // Поле для баланса водителя
+                $table->decimal('balance', 10, 2)->default(0);
+                $table->string('status')->default('offline');
+                
+                // Координаты для карты
+                $table->decimal('lat', 10, 7)->nullable()->comment('Широта');
+                $table->decimal('lng', 10, 7)->nullable()->comment('Долгота');
+                
+                $table->timestamps();
+            });
+        }
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('drivers');
+    }
+};
