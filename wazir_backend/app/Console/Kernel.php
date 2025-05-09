@@ -8,17 +8,18 @@ use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 class Kernel extends ConsoleKernel
 {
     /**
-     * Определяем команды консоли для приложения.
+     * The Artisan commands provided by your application.
      *
      * @var array
      */
     protected $commands = [
         \App\Console\Commands\UpdateBalanceCache::class,
         \App\Console\Commands\MigrateDriverImages::class,
+        \App\Console\Commands\CheckTables::class,
     ];
 
     /**
-     * Определяем расписание команд приложения.
+     * Define the application's command schedule.
      *
      * @param  \Illuminate\Console\Scheduling\Schedule  $schedule
      * @return void
@@ -33,7 +34,7 @@ class Kernel extends ConsoleKernel
     }
 
     /**
-     * Регистрируем команды для приложения.
+     * Register the commands for the application.
      *
      * @return void
      */
